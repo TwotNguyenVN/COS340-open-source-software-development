@@ -1,251 +1,660 @@
-# KẾ HOẠCH NÂNG CẤP DỰ ÁN NTECH STORE THÀNH WEBSITE BÁN HÀNG CHUYÊN NGHIỆP
+BÀI 5 XÂY DỰNG RESTful API  79
 
-Tài liệu này vạch ra lộ trình chi tiết để nâng cấp dự án từ một trang web bán hàng mẫu (assignment/lab) thành một hệ thống thương mại điện tử thực tế, bảo mật, tối ưu SEO và hỗ trợ đầy đủ luồng nghiệp vụ kinh doanh trực tuyến.
+BÀI 5.  XÂY DỰNG RESTful API
 
----
+Sau khi học xong bài này, sinh viên có thể nắm được:
 
-## 🎯 Mục tiêu nâng cấp
-1. **Hoàn thiện luồng nghiệp vụ**: Quản lý kho hàng thực tế, thanh toán online (VNPAY/MOMO), mã giảm giá (Voucher), đánh giá sản phẩm và thông báo qua Email.
-2. **Nâng cao bảo mật**: Áp dụng phân quyền chặt chẽ (RBAC) cho cả giao diện và RESTful API bằng JWT, ngăn chặn hoàn toàn các lỗ hổng XSS, CSRF và SQL Injection.
-3. **Tối ưu trải nghiệm khách hàng (UI/UX)**: Giao diện Apple Premium Design (Liquid Glass) tinh tế, tìm kiếm nhanh gợi ý thông minh (AJAX search), trang chủ sinh động với banner quảng cáo và bộ lọc đa tiêu chí.
-4. **Trang quản trị (Admin Dashboard) chuyên nghiệp**: Thống kê doanh thu, đơn hàng bằng biểu đồ trực quan và quản lý quy trình xử lý đơn hàng.
+• Khái niệm về RESTful API: Hiểu các nguyên tắc cơ bản của REST và cách thức
 
----
+hoạt động của RESTful API.
 
-## 📂 Sơ đồ kiến trúc cải tiến
+• Cấu hình API trong PHP: Biết cách cấu hình và triển khai API sử dụng PHP.
 
-```mermaid
-graph TD
-    Client[Browser / Client App] -->|HTTPS| Router[index.php & .htaccess]
-    Router -->|GET / Product & Cart| MVC_V[Views - Apple Design]
-    Router -->|POST/PUT/DELETE API| JWT_Auth[JWT & Session Verification]
-    
-    JWT_Auth -->|Fail| Auth_Err[401 Unauthorized]
-    JWT_Auth -->|Pass & IsAdmin| Admin_Ctrl[Controllers - Admin & API]
-    JWT_Auth -->|Pass & IsUser| User_Ctrl[Controllers - Checkout & Profile]
-    
-    Admin_Ctrl --> DB[(Database: MySQL)]
-    User_Ctrl --> DB
-    
-    User_Ctrl -->|Checkout Success| Email[SMTP PHPMailer Service]
-    User_Ctrl -->|Online Payment| Pay[VNPAY / MOMO Gateway]
-```
+• Xây dựng các phương thức CRUD cho API: Tạo các phương thức GET, POST,
 
----
+PUT, DELETE để quản lý tài nguyên.
 
-## 🛠️ Chi tiết các hạng mục nâng cấp
+• Tạo và quản lý endpoints: Thiết kế và triển khai các endpoints API cho các chức
 
-### 1. Nâng cấp và Tối ưu hóa Cơ sở dữ liệu (Database Schema Refactoring)
+năng khác nhau.
 
-Để phục vụ các tính năng thương mại điện tử thực tế, cấu trúc DB hiện tại cần được nâng cấp qua việc thêm các trường quản lý kho, giá khuyến mãi và các bảng mới cho mã giảm giá, đánh giá và đa ảnh sản phẩm.
+• Kiểm thử API: Sử dụng Postman hoặc công cụ tương tự để kiểm thử các API đã
 
-```sql
--- Thêm các cột mới vào bảng Product
-ALTER TABLE product ADD COLUMN slug VARCHAR(255) UNIQUE AFTER name;
-ALTER TABLE product ADD COLUMN stock INT DEFAULT 0 AFTER price;
-ALTER TABLE product ADD COLUMN sale_price DECIMAL(10, 2) DEFAULT NULL AFTER price;
-ALTER TABLE product ADD COLUMN brand VARCHAR(50) DEFAULT NULL AFTER category_id;
-ALTER TABLE product ADD COLUMN is_featured TINYINT(1) DEFAULT 0 AFTER category_id;
+triển khai.
 
--- Tạo bảng quản lý đa hình ảnh (Product Gallery)
-CREATE TABLE IF NOT EXISTS product_images (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    product_id INT NOT NULL,
-    image_path VARCHAR(255) NOT NULL,
-    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+5.1  Cập nhật ProductModel
 
--- Cập nhật bảng Orders (Liên kết User, Trạng thái đơn, Phương thức thanh toán)
-ALTER TABLE orders ADD COLUMN account_id INT DEFAULT NULL AFTER id;
-ALTER TABLE orders ADD COLUMN status VARCHAR(50) DEFAULT 'pending' AFTER address;
--- Trạng thái đơn hàng: pending (Chờ duyệt), processing (Đang xử lý), shipping (Đang giao), completed (Đã giao), cancelled (Đã hủy)
-ALTER TABLE orders ADD COLUMN payment_method VARCHAR(50) DEFAULT 'COD' AFTER status; -- COD, VNPAY, MOMO
-ALTER TABLE orders ADD COLUMN payment_status VARCHAR(50) DEFAULT 'unpaid' AFTER payment_method; -- unpaid, paid
-ALTER TABLE orders ADD COLUMN shipping_fee DECIMAL(10, 2) DEFAULT 0.00 AFTER payment_status;
-ALTER TABLE orders ADD COLUMN discount_amount DECIMAL(10, 2) DEFAULT 0.00 AFTER shipping_fee;
-ALTER TABLE orders ADD CONSTRAINT fk_orders_account FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE SET NULL;
+Bỏ thuộc tính image của product
 
--- Tạo bảng Mã giảm giá (Vouchers)
-CREATE TABLE IF NOT EXISTS vouchers (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(50) NOT NULL UNIQUE,
-    discount_type ENUM('percentage', 'fixed') NOT NULL,
-    discount_value DECIMAL(10,2) NOT NULL,
-    min_order_value DECIMAL(10,2) DEFAULT 0.00,
-    expiry_date DATETIME NOT NULL,
-    usage_limit INT DEFAULT 100,
-    used_count INT DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+<?php
+class ProductModel
+{
+    private $conn;
+    private $table_name = "product";
 
--- Tạo bảng Đánh giá sản phẩm (Reviews)
-CREATE TABLE IF NOT EXISTS reviews (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    product_id INT NOT NULL,
-    account_id INT NOT NULL,
-    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
-    comment TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE,
-    FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    public function __construct($db)
+    {
+        $this->conn = $db;
+    }
 
--- Tạo bảng lưu trữ Giỏ hàng trong DB (đồng bộ khi User đổi thiết bị)
-CREATE TABLE IF NOT EXISTS cart (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    account_id INT NOT NULL,
-    product_id INT NOT NULL,
-    quantity INT NOT NULL DEFAULT 1,
-    FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-```
+    public function getProducts()
+    {
+        $query = "SELECT p.id, p.name, p.description, p.price, c.name as category_name
+                  FROM " . $this->table_name . " p
+                  LEFT JOIN category c ON p.category_id = c.id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $result = $stmt->fetchAll(PDO::FETCH_OBJ);
+        return $result;
+    }
 
----
+    public function getProductById($id)
 
-### 2. Nâng cấp Backend & Định tuyến (Routing/Security)
+80
 
-#### A. Định tuyến thân thiện SEO (Slug-based Routing)
-*   **Mục tiêu**: Thay đổi URL từ dạng `/Product/show/1` thành dạng `/san-pham/iphone-15-pro-max-256gb`.
-*   **Thực hiện**:
-    *   Cập nhật quy tắc `.htaccess` để bắt cụm từ `/san-pham/(.*)` và trỏ về `index.php?url=Product/detailBySlug/$1`.
-    *   Thêm phương thức `detailBySlug($slug)` trong `ProductController` để truy vấn CSDL theo slug thay cho ID.
-    *   Viết hàm tự động tạo slug không dấu từ tên sản phẩm khi Admin tạo/cập nhật sản phẩm.
+BÀI 5XÂY DỰNG RESTful API
 
-#### B. Phân quyền và Bảo mật dựa trên vai trò (RBAC)
-*   **Xác thực API an toàn**: Cập nhật hàm `authenticate()` trong `ProductApiController` để kiểm tra thuộc tính `role` trong payload của JWT Token.
-    *   Nếu role của Token không phải `admin`, hệ thống sẽ chặn và trả về lỗi `403 Forbidden` đối với các phương thức `POST`, `PUT`, `DELETE`.
-*   **Bảo mật View (Giao diện web)**:
-    *   Sử dụng `SessionHelper::isAdmin()` để ẩn/hiện hoặc chặn truy cập các URL quản trị: `/Product/add`, `/Product/edit`, `/Category/list`, `/Category/add`. Chỉ tài khoản có `role = 'admin'` mới truy cập được các route này.
-    *   Người dùng đăng nhập thông thường (`role = 'user'`) chỉ có quyền xem sản phẩm, mua hàng và truy cập trang cá nhân.
+    {
+        $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_OBJ);
+        return $result;
+    }
 
-#### C. Chống tấn công lỗ hổng phổ biến (XSS, CSRF, SQL Injection)
-*   **CSRF Protection**: Sinh mã token ngẫu nhiên lưu vào `$_SESSION['csrf_token']` và chèn vào thẻ `<input type="hidden" name="csrf_token" value="...">` ở tất cả các biểu mẫu (Form đăng ký, thanh toán, sửa sản phẩm). Kiểm tra tính khớp nhau của token trong các hàm POST xử lý.
-*   **XSS Filter**: Sử dụng `htmlspecialchars()` khi hiển thị dữ liệu ra màn hình. Khi lưu nội dung mô tả chi tiết sản phẩm (sẽ dùng mã HTML từ editor), sử dụng thư viện lọc HTML an toàn để loại bỏ các thẻ `<script>`, `onload`, `onerror`.
-*   **SQL Injection**: Đảm bảo 100% các câu truy vấn sử dụng PDO Parameter Binding (như đã triển khai ở Sprint 2). Không nối chuỗi biến trực tiếp vào chuỗi SQL.
+    public function addProduct($name, $description, $price, $category_id)
+    {
+        $errors = [];
+        if (empty($name)) {
+            $errors['name'] = 'Tên sản phẩm không được để trống';
+        }
+        if (empty($description)) {
+            $errors['description'] = 'Mô tả không được để trống';
+        }
+        if (!is_numeric($price) || $price < 0) {
+            $errors['price'] = 'Giá sản phẩm không hợp lệ';
+        }
+        if (count($errors) > 0) {
+            return $errors;
+        }
 
----
+        $query = "INSERT INTO " . $this->table_name . " (name, description, price,
+category_id) VALUES (:name, :description, :price, :category_id)";
+        $stmt = $this->conn->prepare($query);
 
-### 3. Nâng cấp Giao diện Frontend (Apple Premium Design / UX)
+        $name = htmlspecialchars(strip_tags($name));
+        $description = htmlspecialchars(strip_tags($description));
+        $price = htmlspecialchars(strip_tags($price));
+        $category_id = htmlspecialchars(strip_tags($category_id));
 
-#### A. Trang chủ (Home Page)
-*   **Banner quảng cáo động**: Tích hợp một slideshow mượt mà hiển thị các sản phẩm hot đang mở bán hoặc chương trình flash sale.
-*   **Bố cục lưới sản phẩm phân loại**: Chia trang chủ thành các nhóm sản phẩm cụ thể như:
-    *   *Sản phẩm nổi bật (Featured)*: Được đề cử từ admin.
-    *   *Sản phẩm mới nhất (New Arrivals)*: Tự động xếp theo ngày đăng giảm dần.
-    *   *Sản phẩm đang giảm giá (Hot Deals)*: Hiển thị nhãn giảm phần trăm cụ thể (so sánh giữa `price` và `sale_price`).
+        $stmt->bindParam(':name', $name);
+        $stmt->bindParam(':description', $description);
+        $stmt->bindParam(':price', $price);
+        $stmt->bindParam(':category_id', $category_id);
 
-#### B. Tìm kiếm thời gian thực (AJAX Autocomplete Search) & Bộ lọc (Filters)
-*   **Tìm kiếm thông minh**: Khi người dùng gõ vào thanh tìm kiếm, hệ thống sẽ thực hiện gọi Fetch API ngầm đến `/api/product?search=keyword` và hiển thị danh sách gợi ý kèm ảnh nhỏ dưới thanh tìm kiếm ngay lập tức (không cần load lại trang).
-*   **Bộ lọc thuộc tính**: Tạo thanh Sidebar bên trái danh sách sản phẩm hỗ trợ lọc đồng thời nhiều tiêu chí:
-    *   *Bộ lọc theo Hãng sản xuất (Brand)*.
-    *   *Bộ lọc theo khoảng giá* (Dưới 10tr, 10tr - 20tr, Trên 20tr).
-    *   *Bộ lọc trạng thái*: Còn hàng / Xem tất cả.
-    *   *Sắp xếp sản phẩm*: Giá tăng dần, Giá giảm dần, Mới nhất, Bán chạy nhất.
+        if ($stmt->execute()) {
+            return true;
+        }
 
-#### C. Trang chi tiết sản phẩm (Product Detail Page)
-*   **Thư viện ảnh sản phẩm (Gallery)**: Hiển thị ảnh chính kích thước lớn cùng các thumbnail ảnh phụ bên dưới. Rê chuột lên ảnh chính hỗ trợ zoom chi tiết sản phẩm.
-*   **Thông số kỹ thuật (Specifications)**: Tạo bảng so sánh thông số kỹ thuật rõ ràng.
-*   **Hệ thống Đánh giá (Customer Reviews)**:
-    *   Hiển thị điểm đánh giá trung bình (ví dụ: 4.5/5 ⭐ từ 12 lượt đánh giá).
-    *   Form gửi đánh giá chỉ hiển thị cho khách hàng đã từng mua sản phẩm này (kiểm tra trạng thái đơn hàng `completed` của user trong DB).
-*   **Nghiệp vụ Mua hàng**: Có 2 tuỳ chọn:
-    *   *Nút "Mua ngay"*: Thêm vào giỏ hàng và chuyển trực tiếp đến trang Thanh toán.
-    *   *Nút "Thêm vào giỏ"*: Thêm sản phẩm bằng AJAX kèm hiệu ứng bay vào giỏ hàng trên Header, không tải lại trang.
+        return false;
+    }
 
----
+BÀI 5 XÂY DỰNG RESTful API  81
 
-### 4. Nghiệp vụ Bán hàng Thực tế & Tích hợp Thanh toán trực tuyến
+    public function updateProduct($id, $name, $description, $price, $category_id)
+    {
+        $query = "UPDATE " . $this->table_name . " SET name=:name,
+description=:description, price=:price, category_id=:category_id WHERE id=:id";
+        $stmt = $this->conn->prepare($query);
 
-#### A. Giỏ hàng lưu trữ thông minh (Smart Cart)
-*   Khi khách hàng chưa đăng nhập: Giỏ hàng được quản lý lưu trữ tạm thời tại Session/LocalStorage.
-*   Khi khách hàng đăng nhập thành công: Thực hiện đồng bộ các sản phẩm từ Session/LocalStorage vào bảng `cart` trong CSDL của tài khoản để lưu trữ vĩnh viễn (giữ nguyên giỏ hàng khi người dùng chuyển từ điện thoại sang máy tính).
+        $name = htmlspecialchars(strip_tags($name));
+        $description = htmlspecialchars(strip_tags($description));
+        $price = htmlspecialchars(strip_tags($price));
+        $category_id = htmlspecialchars(strip_tags($category_id));
 
-#### B. Áp dụng mã giảm giá (Vouchers)
-*   Tại màn hình thanh toán, khách hàng nhập mã Voucher.
-*   Sử dụng Fetch API gửi mã lên server kiểm tra:
-    *   Mã có tồn tại và còn hạn sử dụng không?
-    *   Đơn hàng có đạt giá trị tối thiểu không?
-    *   Số lượng sử dụng tối đa của voucher có còn không?
-*   Nếu hợp lệ, hiển thị số tiền được giảm trực tiếp trên giao diện tóm tắt đơn hàng và lưu thông tin giảm giá vào bảng `orders`.
+        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':name', $name);
+        $stmt->bindParam(':description', $description);
+        $stmt->bindParam(':price', $price);
+        $stmt->bindParam(':category_id', $category_id);
 
-#### C. Tích hợp cổng thanh toán online (VNPAY / MOMO)
-*   **Tích hợp VNPAY Sandbox**:
-    1.  Người dùng tại bước checkout chọn phương thức thanh toán **"Thanh toán qua thẻ ATM/Internet Banking (VNPAY)"**.
-    2.  Hệ thống xử lý lưu đơn hàng ở trạng thái `pending` với phương thức thanh toán là `VNPAY`, đồng thời tạo link thanh toán gửi yêu cầu sang cổng VNPAY Sandbox theo tài khoản test.
-    3.  Khách hàng thực hiện thanh toán giả lập trên trang của VNPAY.
-    4.  VNPAY redirect khách hàng về trang `Product/orderConfirmation` trên website của chúng ta kèm mã kết quả thanh toán.
-    5.  Hệ thống viết API callback (IPN URL) để nhận dữ liệu kiểm tra giao dịch từ VNPAY gửi về ngầm, nếu thành công thì cập nhật đơn hàng thành `status = 'processing'` và `payment_status = 'paid'`.
-    6.  Trang xác nhận đơn hàng hiển thị trạng thái thanh toán thành công.
+        if ($stmt->execute()) {
+            return true;
+        }
+        return false;
+    }
 
----
+    public function deleteProduct($id)
+    {
+        $query = "DELETE FROM " . $this->table_name . " WHERE id=:id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        if ($stmt->execute()) {
+            return true;
+        }
+        return false;
+    }
+}
+?>
 
-### 5. Trang cá nhân và Theo dõi đơn hàng (Customer Dashboard)
+5.2  Xây dựng các Controller tương ứng
 
-*   **Lịch sử mua hàng**: Thiết kế màn hình liệt kê toàn bộ đơn hàng của khách hàng (lọc theo trạng thái đơn hàng).
-*   **Chi tiết đơn hàng & Theo dõi trạng thái**:
-    *   Hiển thị tiến trình xử lý đơn hàng trực quan (Đã đặt -> Đã xác nhận -> Đang giao -> Hoàn thành) bằng sơ đồ thanh trạng thái (timeline bar).
-    *   Cho phép khách hàng thực hiện nút **"Hủy đơn hàng"** khi đơn hàng ở trạng thái `pending`. Khi hủy đơn hàng, cập nhật lại số lượng tồn kho sản phẩm (`stock`).
+Xây dựng file ProductApiController.php
 
----
+<?php
+require_once('app/config/database.php');
+require_once('app/models/ProductModel.php');
+require_once('app/models/CategoryModel.php');
 
-### 6. Trang quản trị toàn diện (Admin Dashboard Portal)
+82
 
-Để tối ưu vận hành, cần xây dựng một giao diện quản trị Admin riêng biệt không chồng chéo với giao diện khách hàng.
+BÀI 5XÂY DỰNG RESTful API
 
-*   **Hệ thống thống kê trực quan (Visual Reports)**:
-    *   Hiển thị các thẻ chỉ số chính: Tổng doanh thu, Số đơn hàng mới, Số khách hàng đăng ký mới, Số sản phẩm hết hàng.
-    *   Tích hợp thư viện **Chart.js** vẽ biểu đồ đường biểu diễn doanh thu 30 ngày gần nhất và biểu đồ cột biểu diễn số lượng bán của các danh mục.
-*   **Duyệt và xử lý đơn hàng (Order Fulfillment)**:
-    *   Màn hình danh sách đơn hàng lọc theo các trạng thái.
-    *   Admin click xem chi tiết thông tin giao hàng, danh sách sản phẩm khách chọn.
-    *   Cung cấp nút chuyển đổi trạng thái đơn hàng: Chờ duyệt ➡️ Đang giao ➡️ Đã giao (hoặc Huỷ).
-*   **Trình soạn thảo soạn bài mô tả (WYSIWYG Editor)**:
-    *   Tích hợp **CKEditor 5** hoặc **TinyMCE** vào trang Thêm/Sửa sản phẩm để Admin có thể chèn bảng biểu, định dạng văn bản in đậm/nghiêng và tô màu mô tả sản phẩm bắt mắt thay vì gõ text thuần.
+class ProductApiController
+{
+    private $productModel;
+    private $db;
 
----
+    public function __construct()
+    {
+        $this->db = (new Database())->getConnection();
+        $this->productModel = new ProductModel($this->db);
+    }
 
-### 7. Hệ thống Email Thông báo Tự động (PHPMailer SMTP Services)
+    // Lấy danh sách sản phẩm
+    public function index()
+    {
+        header('Content-Type: application/json');
+        $products = $this->productModel->getProducts();
+        echo json_encode($products);
+    }
 
-*   **Tích hợp PHPMailer**: Cài đặt thư viện qua Composer (`phpmailer/phpmailer`).
-*   **Cấu hình SMTP**: Sử dụng SMTP Server của Gmail để gửi thư tự động một cách tin cậy.
-*   **Quy trình gửi Email tự động**:
-    *   *Email xác nhận đơn hàng*: Ngay sau khi đặt hàng thành công, hệ thống gửi email HTML chứa bảng chi tiết sản phẩm đã mua, địa chỉ nhận và tổng tiền thanh toán để khách lưu trữ.
-    *   *Email cập nhật trạng thái vận chuyển*: Gửi thông báo tự động khi Admin chuyển trạng thái sang `shipping` (Đang giao hàng).
-    *   *Email cảm ơn & đánh giá*: Gửi sau khi đơn hàng được đánh dấu `completed` để khuyến khích khách hàng quay lại đánh giá sản phẩm lấy điểm tích luỹ.
+    // Lấy thông tin sản phẩm theo ID
+    public function show($id)
+    {
+        header('Content-Type: application/json');
+        $product = $this->productModel->getProductById($id);
+        if ($product) {
+            echo json_encode($product);
+        } else {
+            http_response_code(404);
+            echo json_encode(['message' => 'Product not found']);
+        }
+    }
 
----
+    // Thêm sản phẩm mới
+    public function store()
+    {
 
-## 📈 Lộ trình triển khai đề xuất (Roadmap)
+        header('Content-Type: application/json');
+        $data = json_decode(file_get_contents("php://input"), true);
 
-Kế hoạch nâng cấp được chia làm 4 giai đoạn cụ thể để đảm bảo chất lượng kiểm thử:
+        $name = $data['name'] ?? '';
+        $description = $data['description'] ?? '';
+        $price = $data['price'] ?? '';
+        $category_id = $data['category_id'] ?? null;
 
-```mermaid
-gantt
-    title Lộ trình Nâng cấp NTECH STORE
-    dateFormat  YYYY-MM-DD
-    section Giai đoạn 1: Database & Phân quyền
-    Nâng cấp DB & Cấu trúc Bảng        :active, des1, 2026-05-20, 3d
-    Cơ chế bảo mật JWT & Phân quyền RBAC :des2, after des1, 3d
-    section Giai đoạn 2: UI/UX & Tìm kiếm
-    Trang chủ Apple Design & Slide Show :des3, 2026-05-26, 4d
-    AJAX Live Search & Bộ lọc đa tiêu chí :des4, after des3, 4d
-    section Giai đoạn 3: Giỏ hàng & Thanh toán
-    Smart Cart & Áp mã Voucher          :des5, 2026-06-03, 3d
-    Tích hợp cổng VNPAY/MOMO Sandbox    :des6, after des5, 5d
-    section Giai đoạn 4: Admin & Email
-    Admin Dashboard với Chart.js        :des7, 2026-06-11, 4d
-    Email thông báo PHPMailer & Test    :des8, after des7, 3d
-```
+        $result = $this->productModel->addProduct($name, $description, $price,
+$category_id, null);
 
----
+BÀI 5 XÂY DỰNG RESTful API  83
 
-## 🧪 Kế hoạch Kiểm thử & Đánh giá (Testing Plan)
+        if (is_array($result)) {
+            http_response_code(400);
+            echo json_encode(['errors' => $result]);
+        } else {
+            http_response_code(201);
+            echo json_encode(['message' => 'Product created successfully']);
+        }
+    }
 
-1.  **Kiểm thử chức năng (Functional Testing)**:
-    *   *Kiểm tra luồng đặt hàng*: Đặt hàng không đăng nhập ➡️ Đăng nhập đồng bộ giỏ hàng ➡️ Áp dụng voucher ➡️ Thanh toán VNPAY thành công ➡️ Kiểm tra cập nhật DB (kho hàng giảm đi, đơn hàng chuyển trạng thái).
-    *   *Kiểm tra kho hàng*: Thử đặt mua số lượng vượt quá `stock` trong kho hàng và xác minh hệ thống báo lỗi không cho phép.
-2.  **Kiểm thử bảo mật (Security Testing)**:
-    *   Đăng nhập tài khoản Customer thông thường, lấy token JWT rồi gửi request `DELETE` đến `/api/product/1` xem hệ thống có trả về lỗi `403 Forbidden` hay không.
-    *   Thử chèn mã javascript `<script>alert('hack')</script>` vào ô đánh giá sản phẩm để xem hệ thống có lọc sạch mã độc (XSS) hay không.
-3.  **Kiểm thử hiệu năng & phản hồi**:
-    *   Kiểm tra tốc độ tải trang chủ khi hiển thị hình ảnh tối ưu hoá (WebP, lazy loading) trên các công cụ như PageSpeed Insights.
+    // Cập nhật sản phẩm theo ID
+    public function update($id)
+    {
+        header('Content-Type: application/json');
+        $data = json_decode(file_get_contents("php://input"), true);
+
+        $name = $data['name'] ?? '';
+        $description = $data['description'] ?? '';
+        $price = $data['price'] ?? '';
+        $category_id = $data['category_id'] ?? null;
+
+        $result = $this->productModel->updateProduct($id, $name, $description, $price,
+$category_id, null);
+
+        if ($result) {
+            echo json_encode(['message' => 'Product updated successfully']);
+        } else {
+            http_response_code(400);
+            echo json_encode(['message' => 'Product update failed']);
+        }
+    }
+
+    // Xóa sản phẩm theo ID
+    public function destroy($id)
+    {
+        header('Content-Type: application/json');
+        $result = $this->productModel->deleteProduct($id);
+
+        if ($result) {
+            echo json_encode(['message' => 'Product deleted successfully']);
+        } else {
+            http_response_code(400);
+            echo json_encode(['message' => 'Product deletion failed']);
+        }
+    }
+}
+?>
+
+84
+
+BÀI 5XÂY DỰNG RESTful API
+
+Xây dựng file CategoryApiController.php
+<?php
+require_once('app/config/database.php');
+require_once('app/models/CategoryModel.php');
+
+class CategoryApiController
+{
+    private $categoryModel;
+    private $db;
+
+    public function __construct()
+    {
+        $this->db = (new Database())->getConnection();
+        $this->categoryModel = new CategoryModel($this->db);
+    }
+
+    // Lấy danh sách danh mục
+    public function index()
+    {
+        header('Content-Type: application/json');
+        $categories = $this->categoryModel->getCategories();
+        echo json_encode($categories);
+    }
+}
+?>
+
+5.3  Cấu hình router để định tuyến các yêu cầu
+
+API
+
+<?php
+session_start();
+require_once 'app/models/ProductModel.php';
+require_once 'app/helpers/SessionHelper.php';
+
+require_once 'app/controllers/ProductApiController.php';
+require_once 'app/controllers/CategoryApiController.php';
+// Start session
+
+$url = $_GET['url'] ?? '';
+$url = rtrim($url, '/');
+$url = filter_var($url, FILTER_SANITIZE_URL);
+$url = explode('/', $url);
+
+// Kiểm tra phần đầu tiên của URL để xác định controller
+$controllerName = isset($url[0]) && $url[0] != '' ? ucfirst($url[0]) . 'Controller' :
+'DefaultController';
+
+BÀI 5 XÂY DỰNG RESTful API  85
+
+// Kiểm tra phần thứ hai của URL để xác định action
+$action = isset($url[1]) && $url[1] != '' ? $url[1] : 'index';
+
+// Định tuyến các yêu cầu API
+if ($controllerName === 'ApiController' && isset($url[1])) {
+    $apiControllerName = ucfirst($url[1]) . 'ApiController';
+    if (file_exists('app/controllers/' . $apiControllerName . '.php')) {
+        require_once 'app/controllers/' . $apiControllerName . '.php';
+        $controller = new $apiControllerName();
+
+        $method = $_SERVER['REQUEST_METHOD'];
+        $id = $url[2] ?? null;
+
+        switch ($method) {
+            case 'GET':
+                if ($id) {
+                    $action = 'show';
+                } else {
+                    $action = 'index';
+                }
+                break;
+            case 'POST':
+                $action = 'store';
+                break;
+            case 'PUT':
+                if ($id) {
+                    $action = 'update';
+                }
+                break;
+            case 'DELETE':
+                if ($id) {
+                    $action = 'destroy';
+                }
+                break;
+            default:
+                http_response_code(405);
+                echo json_encode(['message' => 'Method Not Allowed']);
+                exit;
+        }
+
+        if (method_exists($controller, $action)) {
+            if ($id) {
+                call_user_func_array([$controller, $action], [$id]);
+
+86
+
+BÀI 5XÂY DỰNG RESTful API
+
+            } else {
+                call_user_func_array([$controller, $action], []);
+            }
+        } else {
+            http_response_code(404);
+            echo json_encode(['message' => 'Action not found']);
+        }
+        exit;
+    } else {
+        http_response_code(404);
+        echo json_encode(['message' => 'Controller not found']);
+        exit;
+    }
+}
+
+// Tạo đối tượng controller tương ứng cho các yêu cầu không phải API
+if (file_exists('app/controllers/' . $controllerName . '.php')) {
+    require_once 'app/controllers/' . $controllerName . '.php';
+    $controller = new $controllerName();
+} else {
+    die('Controller not found');
+}
+
+// Kiểm tra và gọi action
+if (method_exists($controller, $action)) {
+    call_user_func_array([$controller, $action], array_slice($url, 2));
+} else {
+    die('Action not found');
+}
+?>
+
+5.4  Cập nhật views để quản lý sản phẩm
+
+app/views/product/list.php
+
+<?php include 'app/views/shares/header.php'; ?>
+
+<h1>Danh sách sản phẩm</h1>
+<a href="/webbanhang/Product/add" class="btn btn-success mb-2">Thêm sản phẩm mới</a>
+<ul class="list-group" id="product-list">
+    <!-- Danh sách sản phẩm sẽ được tải từ API và hiển thị tại đây -->
+</ul>
+
+<?php include 'app/views/shares/footer.php'; ?>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    fetch('/webbanhang/api/product')
+
+BÀI 5 XÂY DỰNG RESTful API  87
+
+        .then(response => response.json())
+        .then(data => {
+            const productList = document.getElementById('product-list');
+            data.forEach(product => {
+                const productItem = document.createElement('li');
+                productItem.className = 'list-group-item';
+                productItem.innerHTML = `
+                    <h2><a
+href="/webbanhang/Product/show/${product.id}">${product.name}</a></h2>
+                    <p>${product.description}</p>
+                    <p>Giá: ${product.price} VND</p>
+                    <p>Danh mục: ${product.category_name}</p>
+                    <a href="/webbanhang/Product/edit/${product.id}" class="btn btn-
+warning">Sửa</a>
+                    <button class="btn btn-danger"
+onclick="deleteProduct(${product.id})">Xóa</button>
+                `;
+                productList.appendChild(productItem);
+            });
+        });
+});
+
+function deleteProduct(id) {
+    if (confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
+        fetch(`/webbanhang/api/product/${id}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message === 'Product deleted successfully') {
+                location.reload();
+            } else {
+                alert('Xóa sản phẩm thất bại');
+            }
+        });
+    }
+}
+</script>
+
+app/views/product/add.php
+
+<?php include 'app/views/shares/header.php'; ?>
+
+<h1>Thêm sản phẩm mới</h1>
+<form id="add-product-form">
+    <div class="form-group">
+        <label for="name">Tên sản phẩm:</label>
+
+88
+
+BÀI 5XÂY DỰNG RESTful API
+
+        <input type="text" id="name" name="name" class="form-control" required>
+    </div>
+    <div class="form-group">
+        <label for="description">Mô tả:</label>
+        <textarea id="description" name="description" class="form-control"
+required></textarea>
+    </div>
+    <div class="form-group">
+        <label for="price">Giá:</label>
+        <input type="number" id="price" name="price" class="form-control" step="0.01"
+required>
+    </div>
+    <div class="form-group">
+        <label for="category_id">Danh mục:</label>
+        <select id="category_id" name="category_id" class="form-control" required>
+            <!-- Các danh mục sẽ được tải từ API và hiển thị tại đây -->
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Thêm sản phẩm</button>
+</form>
+
+<a href="/webbanhang/Product/list" class="btn btn-secondary mt-2">Quay lại danh sách
+sản phẩm</a>
+
+<?php include 'app/views/shares/footer.php'; ?>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    fetch('/webbanhang/api/category')
+        .then(response => response.json())
+        .then(data => {
+            const categorySelect = document.getElementById('category_id');
+            data.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                categorySelect.appendChild(option);
+            });
+        });
+
+    document.getElementById('add-product-form').addEventListener('submit',
+function(event) {
+        event.preventDefault();
+
+        const formData = new FormData(this);
+        const jsonData = {};
+        formData.forEach((value, key) => {
+
+            jsonData[key] = value;
+        });
+
+BÀI 5 XÂY DỰNG RESTful API  89
+
+        fetch('/webbanhang/api/product', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(jsonData)
+        })
+        .then(response => response.json())
+        .then(text => {
+        console.log('Raw response:', text); // Log the raw response text
+        try {
+            const data = text;
+            if (data.message === 'Product created successfully') {
+                location.href = '/webbanhang/Product';
+            } else {
+                alert('Thêm sản phẩm thất bại');
+            }
+        } catch (error) {
+            console.error('Error parsing JSON:', error);
+            alert('Lỗi: Không thể phân tích JSON từ phản hồi của máy chủ.');
+        }
+    });
+    });
+});
+</script>
+
+app/views/product/edit.php
+
+<?php include 'app/views/shares/header.php'; ?>
+
+<h1>Sửa sản phẩm</h1>
+<form id="edit-product-form">
+    <input type="hidden" id="id" name="id">
+    <div class="form-group">
+        <label for="name">Tên sản phẩm:</label>
+        <input type="text" id="name" name="name" class="form-control" required>
+    </div>
+    <div class="form-group">
+        <label for="description">Mô tả:</label>
+        <textarea id="description" name="description" class="form-control"
+required></textarea>
+    </div>
+
+90
+
+BÀI 5XÂY DỰNG RESTful API
+
+    <div class="form-group">
+        <label for="price">Giá:</label>
+        <input type="number" id="price" name="price" class="form-control" step="0.01"
+required>
+    </div>
+    <div class="form-group">
+        <label for="category_id">Danh mục:</label>
+        <select id="category_id" name="category_id" class="form-control" required>
+            <!-- Các danh mục sẽ được tải từ API và hiển thị tại đây -->
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+</form>
+
+<a href="/webbanhang/Product/list" class="btn btn-secondary mt-2">Quay lại danh sách
+sản phẩm</a>
+
+<?php include 'app/views/shares/footer.php'; ?>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // const urlParams = new URLSearchParams(window.location.search);
+    const productId = <?= $editId ?>;
+
+    fetch(`/webbanhang/api/product/${productId}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('id').value = data.id;
+            document.getElementById('name').value = data.name;
+            document.getElementById('description').value = data.description;
+            document.getElementById('price').value = data.price;
+            document.getElementById('category_id').value = data.category_id;
+        });
+
+    fetch('/webbanhang/api/category')
+        .then(response => response.json())
+        .then(data => {
+            const categorySelect = document.getElementById('category_id');
+            data.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                categorySelect.appendChild(option);
+            });
+        });
+
+    document.getElementById('edit-product-form').addEventListener('submit',
+function(event) {
+        event.preventDefault();
+
+BÀI 5 XÂY DỰNG RESTful API  91
+
+        const formData = new FormData(this);
+        const jsonData = {};
+        formData.forEach((value, key) => {
+            jsonData[key] = value;
+        });
+
+        fetch(`/webbanhang/api/product/${jsonData.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(jsonData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message === 'Product updated successfully') {
+                location.href = '/webbanhang/Product';
+            } else {
+                alert('Cập nhật sản phẩm thất bại');
+            }
+        });
+    });
+});
+</script>
+
+92
+
+BÀI 5XÂY DỰNG RESTful API
+
+5.5  Tiến hành khởi chạy dự án và sử dụng
+
+postman để kiểm thử API
+
+Phương thức GET
+
+Phương thức POST:
+
+BÀI 5 XÂY DỰNG RESTful API  93
+
+94
+
+BÀI 5XÂY DỰNG RESTful API
+
+Phương thức PUT:
+
+Phương thức DELETE:
+
+BÀI 5 XÂY DỰNG RESTful API  95
+
+5.6  Yêu cầu bổ sung
+
+Xây dựng trang front-end cho API bằng jquery.
+
+96

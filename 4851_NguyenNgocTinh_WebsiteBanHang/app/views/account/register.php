@@ -92,6 +92,11 @@
         <?php endif; ?>
 
         <form action="<?= BASE_URL ?>/account/save" method="post">
+            <div class="mb-3">
+                <label for="email" class="form-label"><i class="fa-regular fa-envelope me-1"></i>Địa chỉ Email</label>
+                <input type="email" class="form-control" id="email" name="email" placeholder="Email của bạn" 
+                       value="<?php echo htmlspecialchars($_POST['email'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" required>
+            </div>
             <div class="row g-3 mb-3">
                 <div class="col-sm-6">
                     <label for="username" class="form-label"><i class="fa-regular fa-user me-1"></i>Tên đăng nhập</label>
@@ -107,11 +112,17 @@
             <div class="row g-3 mb-4">
                 <div class="col-sm-6">
                     <label for="password" class="form-label"><i class="fa-solid fa-lock me-1"></i>Mật khẩu</label>
-                    <input type="password" class="form-control" id="password" name="password" placeholder="Mật khẩu" required>
+                    <div class="position-relative">
+                        <input type="password" class="form-control pe-5" id="password" name="password" placeholder="Mật khẩu" required>
+                        <i class="fa-regular fa-eye position-absolute top-50 end-0 translate-middle-y me-3 text-muted toggle-password" style="cursor: pointer;" onclick="togglePasswordVisibility('password', this)"></i>
+                    </div>
                 </div>
                 <div class="col-sm-6">
                     <label for="confirmpassword" class="form-label"><i class="fa-solid fa-shield-halved me-1"></i>Xác nhận</label>
-                    <input type="password" class="form-control" id="confirmpassword" name="confirmpassword" placeholder="Xác nhận mật khẩu" required>
+                    <div class="position-relative">
+                        <input type="password" class="form-control pe-5" id="confirmpassword" name="confirmpassword" placeholder="Xác nhận mật khẩu" required>
+                        <i class="fa-regular fa-eye position-absolute top-50 end-0 translate-middle-y me-3 text-muted toggle-password" style="cursor: pointer;" onclick="togglePasswordVisibility('confirmpassword', this)"></i>
+                    </div>
                 </div>
             </div>
             <button class="btn btn-premium w-100 py-2 mb-3" type="submit">
@@ -127,3 +138,18 @@
 </div>
 
 <?php include 'app/views/shares/footer.php'; ?>
+
+<script>
+    function togglePasswordVisibility(inputId, iconElement) {
+        const input = document.getElementById(inputId);
+        if (input.type === 'password') {
+            input.type = 'text';
+            iconElement.classList.remove('fa-eye');
+            iconElement.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            iconElement.classList.remove('fa-eye-slash');
+            iconElement.classList.add('fa-eye');
+        }
+    }
+</script>

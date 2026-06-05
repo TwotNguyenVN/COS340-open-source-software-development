@@ -25,6 +25,7 @@ class AccountController {
     function save(){
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $username = trim($_POST['username'] ?? '');
+            $email = trim($_POST['email'] ?? '');
             $fullName = trim($_POST['fullname'] ?? '');
             $password = $_POST['password'] ?? '';
             $confirmPassword = $_POST['confirmpassword'] ?? '';
@@ -32,6 +33,11 @@ class AccountController {
             $errors =[];
             if(empty($username)){
                 $errors['username'] = "Vui lòng nhập userName!";
+            }
+            if(empty($email)){
+                $errors['email'] = "Vui lòng nhập email!";
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $errors['email'] = "Email không hợp lệ!";
             }
             if(empty($fullName)){
                 $errors['fullname'] = "Vui lòng nhập fullName!";
@@ -43,18 +49,21 @@ class AccountController {
                 $errors['confirmPass'] = "Mật khẩu và xác nhận chưa đúng";
             }
             
-            // Kiểm tra username đã được đăng ký chưa
-            $account = $this->accountModel->getAccountByUsername($username);
-
+            // Kiểm tra username đã được đăng ký chưa (cấm trùng username HOẶC email)
+            $account = $this->accountModel->getAccountByUsernameOrEmail($username);
             if($account){
-                $errors['account'] = "Tài khoản này đã có người đăng ký!";
+                $errors['account'] = "Tên đăng nhập này đã tồn tại hoặc trùng với email của người khác!";
+            }
+            $accountEmail = $this->accountModel->getAccountByUsernameOrEmail($email);
+            if($accountEmail){
+                $errors['email'] = "Email này đã được sử dụng!";
             }
 
             if(count($errors) > 0){
                 include_once 'app/views/account/register.php';
             }else{
                 $password_hashed = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
-                $result = $this->accountModel->save($username, $fullName, $password_hashed);
+                $result = $this->accountModel->save($username, $email, $fullName, $password_hashed);
                 if($result){
                     $_SESSION['success_msg'] = "Đăng ký tài khoản thành công! Vui lòng đăng nhập.";
                     header('Location: ' . BASE_URL . '/account/login');
@@ -90,7 +99,7 @@ class AccountController {
         $username = trim($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
 
-        $user = $this->accountModel->getAccountByUsername($username);
+        $user = $this->accountModel->getAccountByUsernameOrEmail($username);
         if ($user && password_verify($password, $user->password)) {
             // Clean up session cart to isolate user carts
             unset($_SESSION['cart']);
@@ -119,7 +128,7 @@ class AccountController {
         $username = trim($data['username'] ?? '');
         $password = $data['password'] ?? '';
 
-        $user = $this->accountModel->getAccountByUsername($username);
+        $user = $this->accountModel->getAccountByUsernameOrEmail($username);
         if ($user && password_verify($password, $user->password)) {
             // Clean up session cart to isolate user carts
             unset($_SESSION['cart']);
@@ -142,6 +151,82 @@ class AccountController {
             http_response_code(401);
             echo json_encode(['message' => 'Invalid credentials']);
         }
+    }
+
+    public function forgotPassword() {
+        include_once 'app/views/account/forgot_password.php';
+    }
+
+    public function apiSendOtp() {
+        header('Content-Type: application/json');
+        $data = json_decode(file_get_contents("php://input"), true);
+        $email = trim($data['email'] ?? '');
+        
+        $user = $this->accountModel->getAccountByUsernameOrEmail($email);
+        if (!$user || $user->email !== $email) {
+            echo json_encode(['success' => false, 'message' => 'Email không tồn tại trong hệ thống.']);
+            return;
+        }
+        
+        $otp = rand(100000, 999999);
+        $this->accountModel->createPasswordReset($email, $otp);
+        
+        // Đặt lại số lần nhập sai OTP
+        $_SESSION['otp_attempts'] = 0;
+        
+        require_once 'app/utils/MailHelper.php';
+        MailHelper::sendOtp($email, $otp);
+        
+        echo json_encode(['success' => true]);
+    }
+
+    public function apiVerifyOtp() {
+        header('Content-Type: application/json');
+        $data = json_decode(file_get_contents("php://input"), true);
+        $email = trim($data['email'] ?? '');
+        $otp = trim($data['otp'] ?? '');
+        
+        if (!isset($_SESSION['otp_attempts'])) {
+            $_SESSION['otp_attempts'] = 0;
+        }
+        
+        if ($_SESSION['otp_attempts'] >= 5) {
+            echo json_encode(['success' => false, 'message' => 'Bạn đã nhập sai quá 5 lần. Vui lòng gửi lại mã OTP mới.']);
+            return;
+        }
+        
+        $record = $this->accountModel->verifyOtp($email, $otp);
+        if ($record) {
+            // Reset attempts on success
+            $_SESSION['otp_attempts'] = 0;
+            echo json_encode(['success' => true]);
+        } else {
+            $_SESSION['otp_attempts']++;
+            echo json_encode(['success' => false, 'message' => 'Mã OTP không đúng hoặc đã hết hạn.']);
+        }
+    }
+
+    public function apiResetPassword() {
+        header('Content-Type: application/json');
+        $data = json_decode(file_get_contents("php://input"), true);
+        $email = trim($data['email'] ?? '');
+        $otp = trim($data['otp'] ?? '');
+        $password = $data['password'] ?? '';
+        
+        if (strlen($password) < 6) {
+            echo json_encode(['success' => false, 'message' => 'Mật khẩu phải có ít nhất 6 ký tự.']);
+            return;
+        }
+        
+        $record = $this->accountModel->verifyOtp($email, $otp);
+        if (!$record) {
+            echo json_encode(['success' => false, 'message' => 'Xác thực thất bại hoặc mã OTP đã hết hạn.']);
+            return;
+        }
+        
+        $hashed = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+        $this->accountModel->updatePassword($email, $hashed);
+        echo json_encode(['success' => true]);
     }
 }
 ?>

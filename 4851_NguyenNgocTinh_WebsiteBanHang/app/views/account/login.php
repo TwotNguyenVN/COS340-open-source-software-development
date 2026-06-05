@@ -101,15 +101,21 @@
 
         <form id="login-form">
             <div class="mb-3">
-                <label class="form-label" for="username"><i class="fa-regular fa-user me-1"></i>Tên đăng nhập</label>
-                <input type="text" id="username" name="username" class="form-control" placeholder="Nhập username..." required autofocus />
+                <label class="form-label" for="username"><i class="fa-regular fa-user me-1"></i>Tên đăng nhập hoặc Email</label>
+                <input type="text" id="username" name="username" class="form-control" placeholder="Nhập username hoặc email..." required autofocus />
             </div>
 
             <div class="mb-4">
                 <label class="form-label" for="password"><i class="fa-solid fa-lock me-1"></i>Mật khẩu</label>
-                <input type="password" id="password" name="password" class="form-control" placeholder="Nhập mật khẩu..." required />
+                <div class="position-relative">
+                    <input type="password" id="password" name="password" class="form-control pe-5" placeholder="Nhập mật khẩu..." required />
+                    <i class="fa-regular fa-eye position-absolute top-50 end-0 translate-middle-y me-3 text-muted toggle-password" style="cursor: pointer;" onclick="togglePasswordVisibility('password', this)"></i>
+                </div>
             </div>
 
+            <div class="d-flex justify-content-end mb-3">
+                <a href="<?= BASE_URL ?>/account/forgotPassword" class="text-decoration-none" style="font-size: 0.85rem; color: var(--link-blue-dark);">Quên mật khẩu?</a>
+            </div>
             <button class="btn btn-premium w-100 py-2 mb-3" type="submit" id="login-btn">
                 <i class="fa-solid fa-right-to-bracket me-2"></i>Đăng nhập
             </button>
@@ -176,4 +182,17 @@ document.getElementById('login-form').addEventListener('submit', function(event)
         btn.innerHTML = '<i class="fa-solid fa-right-to-bracket me-2"></i>Đăng nhập';
     });
 });
+
+function togglePasswordVisibility(inputId, iconElement) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        iconElement.classList.remove('fa-eye');
+        iconElement.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        iconElement.classList.remove('fa-eye-slash');
+        iconElement.classList.add('fa-eye');
+    }
+}
 </script>
