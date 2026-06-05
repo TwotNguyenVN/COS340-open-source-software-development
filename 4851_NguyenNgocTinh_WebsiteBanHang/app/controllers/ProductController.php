@@ -20,29 +20,14 @@ class ProductController
     // Trang chủ sản phẩm — PUBLIC (ai cũng xem được)
     public function index()
     {
-        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-        $limit = 8;
-        
-        $filters = [
-            'search' => isset($_GET['search']) ? trim($_GET['search']) : '',
-            'category_id' => isset($_GET['category_id']) && $_GET['category_id'] !== '' ? (int)$_GET['category_id'] : null,
-            'min_price' => isset($_GET['min_price']) && $_GET['min_price'] !== '' ? (float)$_GET['min_price'] : null,
-            'max_price' => isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (float)$_GET['max_price'] : null,
-            'sort_by' => isset($_GET['sort_by']) ? trim($_GET['sort_by']) : 'newest'
-        ];
-
-        $products = $this->productModel->getProductsFiltered($filters, $page, $limit);
-        $totalProducts = $this->productModel->getTotalProductsFiltered($filters);
-
-        $totalPages = ceil($totalProducts / $limit);
         $categories = $this->categoryModel->getCategories();
 
-        // Định nghĩa các biến để view sử dụng lại giá trị cũ
-        $keyword = $filters['search'];
-        $selected_category_id = $filters['category_id'];
-        $min_price = $filters['min_price'];
-        $max_price = $filters['max_price'];
-        $sort_by = $filters['sort_by'];
+        // Định nghĩa các biến filter trống cho view form ban đầu
+        $keyword = '';
+        $selected_category_id = null;
+        $min_price = null;
+        $max_price = null;
+        $sort_by = 'newest';
 
         include 'app/views/product/list.php';
     }
@@ -69,61 +54,7 @@ class ProductController
             header('Location: ' . BASE_URL . '/Product');
             exit();
         }
-        $categories = $this->categoryModel->getCategories();
         include_once 'app/views/product/add.php';
-    }
-
-    public function save()
-    {
-        if (!SessionHelper::isAdmin()) {
-            $_SESSION['error_msg'] = "Quyền truy cập bị từ chối. Chỉ Admin mới được thực hiện chức năng này.";
-            header('Location: ' . BASE_URL . '/Product');
-            exit();
-        }
-
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $csrfToken = $_POST['csrf_token'] ?? '';
-            if (!SessionHelper::verifyCSRFToken($csrfToken)) {
-                $_SESSION['error_msg'] = "Yêu cầu không hợp lệ (CSRF Token không chính xác).";
-                header('Location: ' . BASE_URL . '/Product');
-                exit();
-            }
-            $name = trim($_POST['name'] ?? '');
-            $description = trim($_POST['description'] ?? '');
-            $price = $_POST['price'] ?? '';
-            $category_id = $_POST['category_id'] ?? null;
-            $stock = isset($_POST['stock']) ? (int)$_POST['stock'] : 0;
-            $image = "";
-
-            // Check if file is uploaded
-            // Image upload validation (controller-specific, not duplicated in model)
-            $errors = [];
-            if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
-                try {
-                    $image = $this->uploadImage($_FILES['image']);
-                } catch (Exception $e) {
-                    $errors['image'] = $e->getMessage();
-                }
-            }
-
-            if (count($errors) > 0) {
-                $categories = $this->categoryModel->getCategories();
-                include 'app/views/product/add.php';
-                return;
-            }
-
-            $result = $this->productModel->addProduct($name, $description, $price, $category_id, $image, $stock);
-
-            if (is_array($result)) {
-                $errors = $result;
-                $categories = $this->categoryModel->getCategories();
-                include 'app/views/product/add.php';
-            } else {
-                $_SESSION['success_msg'] = "Đã thêm sản phẩm thành công!";
-                header('Location: ' . BASE_URL . '/Product');
-                exit();
-            }
-        }
     }
 
     // Sửa sản phẩm — YÊU CẦU QUYỀN ADMIN
@@ -135,128 +66,8 @@ class ProductController
             exit();
         }
 
-        $product = $this->productModel->getProductById($id);
-        $categories = $this->categoryModel->getCategories();
-
-        if ($product) {
-            include 'app/views/product/edit.php';
-        } else {
-            $_SESSION['error_msg'] = "Không tìm thấy sản phẩm.";
-            header('Location: ' . BASE_URL . '/Product');
-            exit();
-        }
-    }
-
-    public function update()
-    {
-        if (!SessionHelper::isAdmin()) {
-            $_SESSION['error_msg'] = "Quyền truy cập bị từ chối. Chỉ Admin mới được thực hiện chức năng này.";
-            header('Location: ' . BASE_URL . '/Product');
-            exit();
-        }
-
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $csrfToken = $_POST['csrf_token'] ?? '';
-            if (!SessionHelper::verifyCSRFToken($csrfToken)) {
-                $_SESSION['error_msg'] = "Yêu cầu không hợp lệ (CSRF Token không chính xác).";
-                header('Location: ' . BASE_URL . '/Product');
-                exit();
-            }
-            $id = $_POST['id'];
-            $name = trim($_POST['name'] ?? '');
-            $description = trim($_POST['description'] ?? '');
-            $price = $_POST['price'] ?? '';
-            $category_id = $_POST['category_id'] ?? null;
-            $existing_image = $_POST['existing_image'] ?? '';
-            $stock = isset($_POST['stock']) ? (int)$_POST['stock'] : 0;
-
-            $errors = [];
-            if (empty($name)) {
-                $errors['name'] = 'Tên sản phẩm không được để trống';
-            }
-            if (empty($description)) {
-                $errors['description'] = 'Mô tả không được để trống';
-            }
-            if (!is_numeric($price) || $price < 0) {
-                $errors['price'] = 'Giá sản phẩm không hợp lệ';
-            }
-            if (empty($category_id)) {
-                $errors['category_id'] = 'Vui lòng chọn danh mục';
-            }
-
-            $image = $existing_image;
-            if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
-                try {
-                    // Upload new image
-                    $image = $this->uploadImage($_FILES['image']);
-                    // Try to delete old image if it exists
-                    if (!empty($existing_image) && file_exists($existing_image)) {
-                        unlink($existing_image);
-                    }
-                } catch (Exception $e) {
-                    $errors['image'] = $e->getMessage();
-                }
-            }
-
-            if (count($errors) > 0) {
-                $product = $this->productModel->getProductById($id);
-                $categories = $this->categoryModel->getCategories();
-                include 'app/views/product/edit.php';
-                return;
-            }
-
-            $edit = $this->productModel->updateProduct($id, $name, $description, $price, $category_id, $image, $stock);
-
-            if ($edit) {
-                $_SESSION['success_msg'] = "Cập nhật sản phẩm thành công!";
-                header('Location: ' . BASE_URL . '/Product');
-                exit();
-            } else {
-                $_SESSION['error_msg'] = "Đã xảy ra lỗi khi lưu sản phẩm.";
-                header('Location: ' . BASE_URL . '/Product');
-                exit();
-            }
-        }
-    }
-
-    // Xóa sản phẩm — YÊU CẦU QUYỀN ADMIN
-    public function delete($id)
-    {
-        if (!SessionHelper::isAdmin()) {
-            $_SESSION['error_msg'] = "Quyền truy cập bị từ chối. Chỉ Admin mới được thực hiện chức năng này.";
-            header('Location: ' . BASE_URL . '/Product');
-            exit();
-        }
-
-        $csrfToken = $_GET['csrf_token'] ?? '';
-        if (!SessionHelper::verifyCSRFToken($csrfToken)) {
-            $_SESSION['error_msg'] = "Yêu cầu không hợp lệ (CSRF Token không chính xác).";
-            header('Location: ' . BASE_URL . '/Product');
-            exit();
-        }
-
-        if ($this->productModel->isProductSold($id)) {
-            $_SESSION['error_msg'] = "Không thể xóa sản phẩm này vì đã bán rồi!";
-            $redirectUrl = $_SERVER['HTTP_REFERER'] ?? (BASE_URL . '/Product');
-            if (strpos($redirectUrl, '/Product/delete') !== false) {
-                $redirectUrl = BASE_URL . '/Product';
-            }
-            header('Location: ' . $redirectUrl);
-            exit();
-        }
-
-        if ($this->productModel->deleteProduct($id)) {
-            $_SESSION['success_msg'] = "Đã xóa sản phẩm thành công!";
-            header('Location: ' . BASE_URL . '/Product');
-        } else {
-            $_SESSION['error_msg'] = "Đã xảy ra lỗi khi xóa sản phẩm.";
-            $redirectUrl = $_SERVER['HTTP_REFERER'] ?? (BASE_URL . '/Product/show/' . $id);
-            if (strpos($redirectUrl, '/Product/delete') !== false) {
-                $redirectUrl = BASE_URL . '/Product';
-            }
-            header('Location: ' . $redirectUrl);
-        }
-        exit();
+        $editId = $id;
+        include 'app/views/product/edit.php';
     }
 
     private function uploadImage($file)

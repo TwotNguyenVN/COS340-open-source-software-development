@@ -15,11 +15,23 @@
         </div>
     </footer>
 
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <!-- Bootstrap 5 Bundle JS (includes Popper) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Light/Dark Mode Toggle Script -->
+    <!-- Light/Dark Mode & Global JS Setup -->
     <script>
+        // Global AJAX setup to always send JWT token if available
+        $.ajaxSetup({
+            beforeSend: function(xhr) {
+                const token = localStorage.getItem('jwt_token');
+                if (token) {
+                    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+                }
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', function() {
             const toggleButton = document.getElementById('theme-toggle');
             const themeIcon = document.getElementById('theme-icon');

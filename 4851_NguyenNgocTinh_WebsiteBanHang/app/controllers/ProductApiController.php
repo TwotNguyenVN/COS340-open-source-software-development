@@ -44,8 +44,28 @@ class ProductApiController
     public function index()
     {
         header('Content-Type: application/json');
-        $products = $this->productModel->getProducts();
-        echo json_encode($products);
+        
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $limit = 8;
+        
+        $filters = [
+            'search' => isset($_GET['search']) ? trim($_GET['search']) : '',
+            'category_id' => isset($_GET['category_id']) && $_GET['category_id'] !== '' ? (int)$_GET['category_id'] : null,
+            'min_price' => isset($_GET['min_price']) && $_GET['min_price'] !== '' ? (float)$_GET['min_price'] : null,
+            'max_price' => isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (float)$_GET['max_price'] : null,
+            'sort_by' => isset($_GET['sort_by']) ? trim($_GET['sort_by']) : 'newest'
+        ];
+
+        $products = $this->productModel->getProductsFiltered($filters, $page, $limit);
+        $totalProducts = $this->productModel->getTotalProductsFiltered($filters);
+        $totalPages = ceil($totalProducts / $limit);
+
+        echo json_encode([
+            'products' => $products,
+            'totalProducts' => $totalProducts,
+            'totalPages' => $totalPages,
+            'currentPage' => $page
+        ]);
     }
 
     // Lấy thông tin sản phẩm theo ID — Public access
@@ -79,15 +99,39 @@ class ProductApiController
             return;
         }
 
-        $data = json_decode(file_get_contents("php://input"), true);
+        // Hỗ trợ cả JSON và FormData
+        $contentType = isset($_SERVER["CONTENT_TYPE"]) ? trim($_SERVER["CONTENT_TYPE"]) : '';
+        if (strpos($contentType, 'application/json') !== false) {
+            $data = json_decode(file_get_contents("php://input"), true);
+        } else {
+            $data = $_POST;
+        }
 
         $name = $data['name'] ?? '';
         $description = $data['description'] ?? '';
         $price = $data['price'] ?? '';
         $category_id = $data['category_id'] ?? null;
-        $image = $data['image'] ?? '';
+        $stock = isset($data['stock']) ? (int)$data['stock'] : 0;
+        
+        $image = "";
+        $errors = [];
+        if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
+            try {
+                $image = $this->uploadImage($_FILES['image']);
+            } catch (Exception $e) {
+                $errors['image'] = $e->getMessage();
+            }
+        } else if (isset($data['image'])) {
+            $image = $data['image'];
+        }
 
-        $result = $this->productModel->addProduct($name, $description, $price, $category_id, $image);
+        if (count($errors) > 0) {
+            http_response_code(400);
+            echo json_encode(['errors' => $errors]);
+            return;
+        }
+
+        $result = $this->productModel->addProduct($name, $description, $price, $category_id, $image, $stock);
 
         if (is_array($result)) {
             http_response_code(400);
@@ -116,18 +160,59 @@ class ProductApiController
             return;
         }
 
-        $data = json_decode(file_get_contents("php://input"), true);
+        // Hỗ trợ cả JSON và FormData
+        // Note: PUT method typically doesn't populate $_POST in PHP if it's multipart/form-data.
+        // Therefore, we recommend using POST method with ?_method=PUT in frontend, or just read php://input.
+        // To make it easy, we will check $_POST first.
+        $contentType = isset($_SERVER["CONTENT_TYPE"]) ? trim($_SERVER["CONTENT_TYPE"]) : '';
+        if (strpos($contentType, 'application/json') !== false) {
+            $data = json_decode(file_get_contents("php://input"), true);
+        } else {
+            // PHP doesnt parse multipart/form-data for PUT requests out of the box
+            // So we handle it via _POST if they used POST method with _method=PUT hack
+            $data = $_POST;
+        }
 
         $name = $data['name'] ?? '';
         $description = $data['description'] ?? '';
         $price = $data['price'] ?? '';
         $category_id = $data['category_id'] ?? null;
+        $stock = isset($data['stock']) ? (int)$data['stock'] : 0;
 
-        // Preserve existing image — fetch from DB to prevent data loss
         $existingProduct = $this->productModel->getProductById($id);
-        $image = $data['image'] ?? ($existingProduct ? $existingProduct->image : '');
+        if (!$existingProduct) {
+            http_response_code(404);
+            echo json_encode(['message' => 'Product not found']);
+            return;
+        }
+        
+        // If client sent existing_image, use it (allows clearing the image if empty string)
+        if (isset($data['existing_image'])) {
+            $image = $data['existing_image'];
+        } else {
+            $image = $existingProduct ? $existingProduct->image : '';
+        }
+        
+        $errors = [];
 
-        $result = $this->productModel->updateProduct($id, $name, $description, $price, $category_id, $image);
+        if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
+            try {
+                $image = $this->uploadImage($_FILES['image']);
+                if ($existingProduct && !empty($existingProduct->image) && file_exists($existingProduct->image)) {
+                    unlink($existingProduct->image);
+                }
+            } catch (Exception $e) {
+                $errors['image'] = $e->getMessage();
+            }
+        }
+
+        if (count($errors) > 0) {
+            http_response_code(400);
+            echo json_encode(['errors' => $errors]);
+            return;
+        }
+
+        $result = $this->productModel->updateProduct($id, $name, $description, $price, $category_id, $image, $stock);
 
         if ($result === true) {
             echo json_encode(['message' => 'Product updated successfully']);
@@ -138,6 +223,38 @@ class ProductApiController
             http_response_code(400);
             echo json_encode(['message' => 'Product update failed']);
         }
+    }
+    
+    private function uploadImage($file)
+    {
+        $target_dir = "public/uploads/";
+        if (!is_dir($target_dir)) {
+            mkdir($target_dir, 0777, true);
+        }
+
+        $filename = time() . "_" . basename($file["name"]);
+        $target_file = $target_dir . $filename;
+        $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
+
+        $check = getimagesize($file["tmp_name"]);
+        if ($check === false) {
+            throw new Exception("File không phải là hình ảnh.");
+        }
+
+        if ($file["size"] > 5 * 1024 * 1024) {
+            throw new Exception("Hình ảnh quá lớn (Tối đa 5MB).");
+        }
+
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        if (!in_array($imageFileType, $allowed)) {
+            throw new Exception("Chỉ hỗ trợ định dạng JPG, JPEG, PNG, GIF, WEBP.");
+        }
+
+        if (!move_uploaded_file($file["tmp_name"], $target_file)) {
+            throw new Exception("Có lỗi xảy ra khi tải lên hình ảnh.");
+        }
+
+        return $target_file;
     }
 
     // Xóa sản phẩm theo ID — Yêu cầu JWT của Admin
