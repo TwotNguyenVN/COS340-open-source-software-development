@@ -136,10 +136,10 @@
                 </div>
             </div>
 
-            <!-- Actual form (hidden until data loads) -->
-            <form id="edit-product-form" method="POST" action="<?php echo BASE_URL; ?>/Product/update" enctype="multipart/form-data" style="display: none;">
-                <?php echo '<input type="hidden" name="csrf_token" value="' . SessionHelper::getCSRFToken() . '">'; ?>
+            <form id="edit-product-form" enctype="multipart/form-data" style="display: none;">
+                <input type="hidden" name="csrf_token" value="<?php echo SessionHelper::getCSRFToken(); ?>">
                 <input type="hidden" id="id" name="id">
+                <input type="hidden" name="_method" value="PUT">
                 <input type="hidden" id="existing_image" name="existing_image">
 
                 <div class="row g-4">
@@ -394,11 +394,65 @@ document.addEventListener("DOMContentLoaded", function() {
             `;
         });
 
-    // Form submission — native POST, just show spinner
-    document.getElementById('edit-product-form').addEventListener('submit', function() {
-        const btn = document.getElementById('submit-btn');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Đang lưu...';
-    });
+    // Handle form submission via AJAX
+    const editForm = document.getElementById('edit-product-form');
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (submitBtn.disabled) return;
+            
+            // Show loading state
+            const originalBtnHtml = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Đang lưu...';
+
+            const formData = new FormData(this);
+
+            $.ajax({
+                url: '<?php echo BASE_URL; ?>/api/product/' + productId,
+                method: 'POST', // POST with _method=PUT inside formData
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công',
+                        text: 'Cập nhật sản phẩm thành công!',
+                        background: currentTheme === 'light' ? '#ffffff' : '#1d1d1f',
+                        color: currentTheme === 'light' ? '#1d1d1f' : '#f5f5f7',
+                        confirmButtonColor: '#ff9f0a'
+                    }).then(() => {
+                        window.location.href = '<?php echo BASE_URL; ?>/Product';
+                    });
+                },
+                error: function(xhr) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnHtml;
+                    
+                    let errorMsg = 'Đã xảy ra lỗi khi cập nhật sản phẩm.';
+                    if (xhr.responseJSON) {
+                        if (xhr.responseJSON.errors) {
+                            // Collect all error messages
+                            let errors = Object.values(xhr.responseJSON.errors).join('<br>');
+                            errorMsg = errors;
+                        } else if (xhr.responseJSON.message) {
+                            errorMsg = xhr.responseJSON.message;
+                        }
+                    }
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        html: errorMsg,
+                        background: currentTheme === 'light' ? '#ffffff' : '#1d1d1f',
+                        color: currentTheme === 'light' ? '#1d1d1f' : '#f5f5f7',
+                        confirmButtonColor: '#ff453a'
+                    });
+                }
+            });
+        });
+    }
 });
 </script>

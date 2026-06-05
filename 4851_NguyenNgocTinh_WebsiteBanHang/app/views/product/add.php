@@ -104,8 +104,8 @@
                 </div>
             </div>
 
-            <form id="add-product-form" method="POST" action="<?php echo BASE_URL; ?>/Product/save" enctype="multipart/form-data">
-                <?php echo '<input type="hidden" name="csrf_token" value="' . SessionHelper::getCSRFToken() . '">'; ?>
+            <form id="add-product-form" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?php echo SessionHelper::getCSRFToken(); ?>">
 
                 <div class="row g-4">
                     <!-- Tên sản phẩm -->
@@ -314,5 +314,65 @@ document.addEventListener("DOMContentLoaded", function() {
                 confirmButtonColor: '#ff453a'
             });
         });
+    // Handle form submission via AJAX
+    const addForm = document.getElementById('add-product-form');
+    if (addForm) {
+        addForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (submitBtn.disabled) return;
+            
+            // Show loading state
+            const originalBtnHtml = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Đang xử lý...';
+
+            const formData = new FormData(this);
+
+            $.ajax({
+                url: '<?php echo BASE_URL; ?>/api/product',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công',
+                        text: 'Thêm sản phẩm thành công!',
+                        background: currentTheme === 'light' ? '#ffffff' : '#1d1d1f',
+                        color: currentTheme === 'light' ? '#1d1d1f' : '#f5f5f7',
+                        confirmButtonColor: '#0071e3'
+                    }).then(() => {
+                        window.location.href = '<?php echo BASE_URL; ?>/Product';
+                    });
+                },
+                error: function(xhr) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnHtml;
+                    
+                    let errorMsg = 'Đã xảy ra lỗi khi thêm sản phẩm.';
+                    if (xhr.responseJSON) {
+                        if (xhr.responseJSON.errors) {
+                            // Collect all error messages
+                            let errors = Object.values(xhr.responseJSON.errors).join('<br>');
+                            errorMsg = errors;
+                        } else if (xhr.responseJSON.message) {
+                            errorMsg = xhr.responseJSON.message;
+                        }
+                    }
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        html: errorMsg,
+                        background: currentTheme === 'light' ? '#ffffff' : '#1d1d1f',
+                        color: currentTheme === 'light' ? '#1d1d1f' : '#f5f5f7',
+                        confirmButtonColor: '#ff453a'
+                    });
+                }
+            });
+        });
+    }
 });
 </script>

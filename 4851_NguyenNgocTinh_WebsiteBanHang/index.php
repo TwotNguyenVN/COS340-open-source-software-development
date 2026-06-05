@@ -29,6 +29,12 @@ if ($controllerName === 'ApiController' && isset($url[1])) {
         $controller = new $apiControllerName();
 
         $method = $_SERVER['REQUEST_METHOD'];
+        
+        // Handle method override for PUT/DELETE via POST
+        if ($method === 'POST' && isset($_POST['_method'])) {
+            $method = strtoupper($_POST['_method']);
+        }
+        
         $id = $url[2] ?? null;
 
         switch ($method) {

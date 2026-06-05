@@ -342,7 +342,7 @@
 
 <!-- Filter Form Panel -->
 <div class="glass-card mb-4 p-4">
-    <form id="filterForm" method="GET" action="<?php echo BASE_URL; ?>/Product" class="row g-3 align-items-end">
+    <form id="filterForm" class="row g-3 align-items-end" onsubmit="event.preventDefault(); loadProducts(1);">
         <!-- Search Keyword -->
         <div class="col-12 col-md-4">
             <label class="form-label text-muted small fw-bold text-uppercase mb-2"><i class="fa-solid fa-magnifying-glass me-1"></i>Từ khóa</label>
@@ -395,161 +395,25 @@
     </form>
 </div>
 
-<?php if (!empty($keyword) || !empty($selected_category_id) || !empty($min_price) || !empty($max_price)): ?>
-    <div class="mb-4 d-flex align-items-center gap-2 flex-wrap">
-        <span class="text-muted small">Đang lọc theo:</span>
-        <?php if (!empty($keyword)): ?>
-            <span class="badge-premium" style="font-size: 0.8rem;">Từ khóa: "<?php echo htmlspecialchars($keyword, ENT_QUOTES, 'UTF-8'); ?>"</span>
-        <?php endif; ?>
-        <?php if (!empty($selected_category_id)): ?>
-            <?php 
-            $selected_cat_name = 'Danh mục';
-            foreach ($categories as $cat) {
-                if ($cat->id == $selected_category_id) {
-                    $selected_cat_name = $cat->name;
-                    break;
-                }
-            }
-            ?>
-            <span class="badge-premium" style="font-size: 0.8rem;">Danh mục: <?php echo htmlspecialchars($selected_cat_name, ENT_QUOTES, 'UTF-8'); ?></span>
-        <?php endif; ?>
-        <?php if (!empty($min_price) || !empty($max_price)): ?>
-            <span class="badge-premium" style="font-size: 0.8rem;">Giá: 
-                <?php 
-                if (!empty($min_price) && !empty($max_price)) {
-                    echo number_format($min_price, 0, ',', '.') . 'đ - ' . number_format($max_price, 0, ',', '.') . 'đ';
-                } elseif (!empty($min_price)) {
-                    echo '>= ' . number_format($min_price, 0, ',', '.') . 'đ';
-                } else {
-                    echo '<= ' . number_format($max_price, 0, ',', '.') . 'đ';
-                }
-                ?>
-            </span>
-        <?php endif; ?>
-        <span class="text-muted ms-md-auto small">(Tìm thấy <?php echo $totalProducts; ?> kết quả)</span>
-    </div>
-<?php endif; ?>
+<div id="filterTagsContainer" class="mb-4 d-flex align-items-center gap-2 flex-wrap" style="display: none !important;"></div>
 
 <!-- Products Grid -->
-<?php if (empty($products)): ?>
-    <div class="glass-card empty-state">
-        <i class="fa-solid fa-magnifying-glass d-block"></i>
-        <h3 class="text-gradient fw-bold mb-2">Không tìm thấy sản phẩm</h3>
-        <p class="text-muted mb-3">Thử tìm kiếm với từ khóa khác hoặc quay lại trang chủ.</p>
-        <a href="<?php echo BASE_URL; ?>/Product" class="btn btn-premium">
-            <i class="fa-solid fa-arrow-left me-2"></i>Xem tất cả sản phẩm
-        </a>
+<div id="productGridContainer">
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
     </div>
-<?php else: ?>
-    <div class="row g-4">
-        <?php foreach ($products as $product): ?>
-            <div class="col-6 col-md-4 col-lg-3">
-                <div class="product-card">
-                    <!-- Product Image -->
-                    <a href="<?php echo BASE_URL; ?>/Product/show/<?php echo $product->id; ?>" class="text-decoration-none">
-                        <div class="product-card-img-wrapper">
-                            <?php if (!empty($product->image) && file_exists($product->image)): ?>
-                                <img src="<?php echo BASE_URL . '/' . $product->image; ?>" alt="<?php echo htmlspecialchars($product->name); ?>" class="product-card-img">
-                            <?php else: ?>
-                                <div class="no-image-placeholder">
-                                    <i class="fa-regular fa-image fs-2 mb-2"></i>
-                                    <small>Chưa có ảnh</small>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    </a>
+</div>
 
-                    <!-- Product Info -->
-                    <div class="product-card-body">
-                        <div class="product-card-category">
-                            <span class="badge-premium" style="font-size: 0.7rem;"><?php echo htmlspecialchars($product->category_name ?? 'Chưa phân loại', ENT_QUOTES, 'UTF-8'); ?></span>
-                        </div>
-                        <h5 class="product-card-title">
-                            <a href="<?php echo BASE_URL; ?>/Product/show/<?php echo $product->id; ?>"><?php echo htmlspecialchars($product->name, ENT_QUOTES, 'UTF-8'); ?></a>
-                        </h5>
-                        <div class="product-card-price">
-                            <?php echo number_format($product->price, 0, ',', '.'); ?> <small style="font-size: 0.7em; font-weight: 400;">VND</small>
-                        </div>
-
-                        <!-- Stock badge -->
-                        <div class="mb-2">
-                            <?php
-                            $stock = (int)($product->stock ?? 0);
-                            if ($stock <= 0) {
-                                $stockClass = 'danger';
-                                $stockLabel = 'Hết hàng';
-                                $stockIcon = 'fa-ban';
-                            } elseif ($stock <= 5) {
-                                $stockClass = 'warning';
-                                $stockLabel = 'Sắp hết (' . $stock . ')';
-                                $stockIcon = 'fa-triangle-exclamation';
-                            } else {
-                                $stockClass = 'success';
-                                $stockLabel = 'Còn ' . $stock;
-                                $stockIcon = 'fa-check';
-                            }
-                            ?>
-                            <span class="stock-badge stock-<?php echo $stockClass; ?>">
-                                <i class="fa-solid <?php echo $stockIcon; ?> me-1"></i><?php echo $stockLabel; ?>
-                            </span>
-                        </div>
-
-                        <!-- Actions -->
-                        <div class="product-card-actions">
-                            <?php if ($stock <= 0): ?>
-                                <button class="btn btn-premium btn-sm flex-grow-1" disabled style="font-size: 0.75rem; opacity: 0.6; cursor: not-allowed;" title="Hết hàng">
-                                    <i class="fa-solid fa-ban me-1"></i>Hết hàng
-                                </button>
-                            <?php else: ?>
-                                <button onclick="addToCartAjax(event, '<?php echo $product->id; ?>')" class="btn btn-premium btn-sm flex-grow-1" style="font-size: 0.75rem;">
-                                    <i class="fa-solid fa-cart-plus me-1"></i>Thêm giỏ
-                                </button>
-                            <?php endif; ?>
-                            <?php if (SessionHelper::isAdmin()): ?>
-                                <a href="<?php echo BASE_URL; ?>/Product/edit/<?php echo $product->id; ?>" class="btn btn-premium-warning btn-sm" style="font-size: 0.75rem; padding: 6px 10px;">
-                                    <i class="fa-solid fa-pen"></i>
-                                </a>
-                                <button onclick="confirmDelete('<?php echo $product->id; ?>', '<?php echo htmlspecialchars($product->name, ENT_QUOTES, 'UTF-8'); ?>')" class="btn btn-premium-danger btn-sm" style="font-size: 0.75rem; padding: 6px 10px;">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        <?php endforeach; ?>
-    </div>
-
-    <!-- Pagination -->
-    <?php if (isset($totalPages) && $totalPages > 1): ?>
-        <nav class="mt-5 d-flex justify-content-center">
-            <ul class="pagination pagination-premium mb-0">
-                <?php 
-                $getParams = $_GET;
-                unset($getParams['page']);
-                $queryParams = !empty($getParams) ? '&' . http_build_query($getParams) : '';
-                ?>
-                <li class="page-item <?php echo ($page <= 1) ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="<?php echo BASE_URL; ?>/Product?page=<?php echo $page - 1; ?><?php echo $queryParams; ?>">
-                        <i class="fa-solid fa-chevron-left"></i>
-                    </a>
-                </li>
-                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                    <li class="page-item <?php echo ($i == $page) ? 'active' : ''; ?>">
-                        <a class="page-link" href="<?php echo BASE_URL; ?>/Product?page=<?php echo $i; ?><?php echo $queryParams; ?>"><?php echo $i; ?></a>
-                    </li>
-                <?php endfor; ?>
-                <li class="page-item <?php echo ($page >= $totalPages) ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="<?php echo BASE_URL; ?>/Product?page=<?php echo $page + 1; ?><?php echo $queryParams; ?>">
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-    <?php endif; ?>
-<?php endif; ?>
+<nav id="paginationWrapper" class="mt-5 d-flex justify-content-center"></nav>
 
 <script>
+// Check if user is admin for rendering buttons
+const isAdmin = <?php echo SessionHelper::isAdmin() ? 'true' : 'false'; ?>;
+const baseUrl = '<?php echo BASE_URL; ?>';
+const csrfToken = '<?php echo SessionHelper::getCSRFToken(); ?>';
+
 function confirmDelete(id, name) {
     const currentTheme = localStorage.getItem('theme') || 'dark';
     Swal.fire({
@@ -565,7 +429,19 @@ function confirmDelete(id, name) {
         cancelButtonText: 'Hủy'
     }).then((result) => {
         if (result.isConfirmed) {
-            window.location.href = '<?php echo BASE_URL; ?>/Product/delete/' + id + '?csrf_token=<?php echo SessionHelper::getCSRFToken(); ?>';
+            $.ajax({
+                url: baseUrl + '/api/product/' + id,
+                method: 'DELETE',
+                success: function(response) {
+                    Swal.fire('Đã xóa!', 'Sản phẩm đã được xóa.', 'success');
+                    loadProducts(1);
+                },
+                error: function(xhr) {
+                    let msg = 'Đã xảy ra lỗi khi xóa.';
+                    if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                    Swal.fire('Lỗi', msg, 'error');
+                }
+            });
         }
     })
 }
@@ -574,7 +450,7 @@ function confirmDelete(id, name) {
 let filterTimeout = null;
 
 function submitFilterForm() {
-    document.getElementById('filterForm').submit();
+    loadProducts(1);
 }
 
 function debouncedSubmitFilterForm() {
@@ -582,6 +458,205 @@ function debouncedSubmitFilterForm() {
     filterTimeout = setTimeout(() => {
         submitFilterForm();
     }, 600);
+}
+
+function loadProducts(page = 1) {
+    const search = $('#searchInput').val();
+    const category_id = $('select[name="category_id"]').val();
+    const sort_by = $('select[name="sort_by"]').val();
+    const min_price = $('#minPriceInput').val();
+    const max_price = $('#maxPriceInput').val();
+
+    // Cập nhật URL parameter (tuỳ chọn để giữ trạng thái khi f5)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (search) urlParams.set('search', search); else urlParams.delete('search');
+    if (category_id) urlParams.set('category_id', category_id); else urlParams.delete('category_id');
+    if (sort_by) urlParams.set('sort_by', sort_by); else urlParams.delete('sort_by');
+    if (min_price) urlParams.set('min_price', min_price); else urlParams.delete('min_price');
+    if (max_price) urlParams.set('max_price', max_price); else urlParams.delete('max_price');
+    urlParams.set('page', page);
+    window.history.replaceState({}, '', `${location.pathname}?${urlParams}`);
+
+    // Update tags
+    updateFilterTags(search, category_id, min_price, max_price);
+
+    $('#productGridContainer').html(`
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+        </div>
+    `);
+
+    $.ajax({
+        url: baseUrl + '/api/product',
+        method: 'GET',
+        data: {
+            page: page,
+            search: search,
+            category_id: category_id,
+            sort_by: sort_by,
+            min_price: min_price,
+            max_price: max_price
+        },
+        success: function(response) {
+            renderProducts(response.products);
+            renderPagination(response.currentPage, response.totalPages);
+            
+            // Cập nhật tổng số sản phẩm
+            $('.stats-pill span').text(response.totalProducts + ' sản phẩm');
+        },
+        error: function(err) {
+            console.error(err);
+            $('#productGridContainer').html('<div class="alert alert-danger">Đã xảy ra lỗi khi tải dữ liệu!</div>');
+        }
+    });
+}
+
+function formatPrice(price) {
+    return new Intl.NumberFormat('vi-VN').format(price);
+}
+
+function renderProducts(products) {
+    if (!products || products.length === 0) {
+        $('#productGridContainer').html(`
+            <div class="glass-card empty-state">
+                <i class="fa-solid fa-magnifying-glass d-block"></i>
+                <h3 class="text-gradient fw-bold mb-2">Không tìm thấy sản phẩm</h3>
+                <p class="text-muted mb-3">Thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc.</p>
+                <button type="button" onclick="$('#filterForm')[0].reset(); loadProducts(1);" class="btn btn-premium">
+                    <i class="fa-solid fa-rotate-left me-2"></i>Xóa bộ lọc
+                </button>
+            </div>
+        `);
+        return;
+    }
+
+    let html = '<div class="row g-4">';
+    products.forEach((product, index) => {
+        const delay = index * 0.04;
+        const stock = parseInt(product.stock) || 0;
+        let stockHtml = '';
+        let btnHtml = '';
+
+        if (stock <= 0) {
+            stockHtml = `<span class="stock-badge stock-danger"><i class="fa-solid fa-ban me-1"></i>Hết hàng</span>`;
+            btnHtml = `<button class="btn btn-premium btn-sm flex-grow-1" disabled style="font-size: 0.75rem; opacity: 0.6; cursor: not-allowed;" title="Hết hàng"><i class="fa-solid fa-ban me-1"></i>Hết hàng</button>`;
+        } else if (stock <= 5) {
+            stockHtml = `<span class="stock-badge stock-warning"><i class="fa-solid fa-triangle-exclamation me-1"></i>Sắp hết (${stock})</span>`;
+            btnHtml = `<button onclick="addToCartAjax(event, '${product.id}')" class="btn btn-premium btn-sm flex-grow-1" style="font-size: 0.75rem;"><i class="fa-solid fa-cart-plus me-1"></i>Thêm giỏ</button>`;
+        } else {
+            stockHtml = `<span class="stock-badge stock-success"><i class="fa-solid fa-check me-1"></i>Còn ${stock}</span>`;
+            btnHtml = `<button onclick="addToCartAjax(event, '${product.id}')" class="btn btn-premium btn-sm flex-grow-1" style="font-size: 0.75rem;"><i class="fa-solid fa-cart-plus me-1"></i>Thêm giỏ</button>`;
+        }
+
+        let adminActions = '';
+        if (isAdmin) {
+            adminActions = `
+                <a href="${baseUrl}/Product/edit/${product.id}" class="btn btn-premium-warning btn-sm" style="font-size: 0.75rem; padding: 6px 10px;">
+                    <i class="fa-solid fa-pen"></i>
+                </a>
+                <button onclick="confirmDelete('${product.id}', '${product.name.replace(/'/g, "\\'")}')" class="btn btn-premium-danger btn-sm" style="font-size: 0.75rem; padding: 6px 10px;">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            `;
+        }
+
+        let imgHtml = product.image ? `<img src="${baseUrl}/${product.image}" alt="${product.name}" class="product-card-img">` : `<div class="no-image-placeholder"><i class="fa-regular fa-image fs-2 mb-2"></i><small>Chưa có ảnh</small></div>`;
+
+        html += `
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="product-card" style="animation-delay: ${delay}s">
+                <a href="${baseUrl}/Product/show/${product.id}" class="text-decoration-none">
+                    <div class="product-card-img-wrapper">${imgHtml}</div>
+                </a>
+                <div class="product-card-body">
+                    <div class="product-card-category">
+                        <span class="badge-premium" style="font-size: 0.7rem;">${product.category_name || 'Chưa phân loại'}</span>
+                    </div>
+                    <h5 class="product-card-title">
+                        <a href="${baseUrl}/Product/show/${product.id}">${product.name}</a>
+                    </h5>
+                    <div class="product-card-price">
+                        ${formatPrice(product.price)} <small style="font-size: 0.7em; font-weight: 400;">VND</small>
+                    </div>
+                    <div class="mb-2">${stockHtml}</div>
+                    <div class="product-card-actions">
+                        ${btnHtml}
+                        ${adminActions}
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    });
+    html += '</div>';
+    $('#productGridContainer').html(html);
+}
+
+function renderPagination(currentPage, totalPages) {
+    if (totalPages <= 1) {
+        $('#paginationWrapper').empty();
+        return;
+    }
+
+    let html = '<ul class="pagination pagination-premium mb-0">';
+    
+    // Prev
+    html += `
+        <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="event.preventDefault(); ${currentPage > 1 ? `loadProducts(${currentPage - 1})` : ''}">
+                <i class="fa-solid fa-chevron-left"></i>
+            </a>
+        </li>
+    `;
+
+    for (let i = 1; i <= totalPages; i++) {
+        html += `
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="event.preventDefault(); loadProducts(${i})">${i}</a>
+            </li>
+        `;
+    }
+
+    // Next
+    html += `
+        <li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="event.preventDefault(); ${currentPage < totalPages ? `loadProducts(${currentPage + 1})` : ''}">
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+        </li>
+    `;
+    
+    html += '</ul>';
+    $('#paginationWrapper').html(html);
+}
+
+function updateFilterTags(search, category_id, min_price, max_price) {
+    const container = $('#filterTagsContainer');
+    if (!search && !category_id && !min_price && !max_price) {
+        container.hide();
+        return;
+    }
+    
+    container.show();
+    let html = '<span class="text-muted small">Đang lọc theo:</span>';
+    
+    if (search) {
+        html += `<span class="badge-premium" style="font-size: 0.8rem;">Từ khóa: "${search}"</span>`;
+    }
+    if (category_id) {
+        const catName = $('select[name="category_id"] option:selected').text().trim();
+        html += `<span class="badge-premium" style="font-size: 0.8rem;">Danh mục: ${catName}</span>`;
+    }
+    if (min_price || max_price) {
+        let priceText = '';
+        if (min_price && max_price) priceText = `${formatPrice(min_price)}đ - ${formatPrice(max_price)}đ`;
+        else if (min_price) priceText = `>= ${formatPrice(min_price)}đ`;
+        else priceText = `<= ${formatPrice(max_price)}đ`;
+        html += `<span class="badge-premium" style="font-size: 0.8rem;">Giá: ${priceText}</span>`;
+    }
+    
+    container.html(html);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -592,6 +667,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (searchInput) searchInput.addEventListener('input', debouncedSubmitFilterForm);
     if (minPriceInput) minPriceInput.addEventListener('input', debouncedSubmitFilterForm);
     if (maxPriceInput) maxPriceInput.addEventListener('input', debouncedSubmitFilterForm);
+
+    // Initial load based on URL parameters (if any)
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialPage = parseInt(urlParams.get('page')) || 1;
+    loadProducts(initialPage);
 });
 </script>
 
