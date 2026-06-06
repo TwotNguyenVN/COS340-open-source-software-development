@@ -436,6 +436,28 @@ class ProductController
                 exit();
             }
 
+            if (!preg_match('/^[\p{L}\s]{2,50}$/u', $name)) {
+                $_SESSION['error_msg'] = "Họ và tên không hợp lệ. Chỉ chấp nhận chữ cái và từ 2-50 ký tự.";
+                header('Location: ' . BASE_URL . '/Product/checkout');
+                exit();
+            }
+
+            if (!preg_match('/^(03|05|07|08|09)\d{8}$/', $phone)) {
+                $_SESSION['error_msg'] = "Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 số đầu số Việt Nam.";
+                header('Location: ' . BASE_URL . '/Product/checkout');
+                exit();
+            }
+
+            if (mb_strlen($address, 'UTF-8') < 10 || mb_strlen($address, 'UTF-8') > 255) {
+                $_SESSION['error_msg'] = "Địa chỉ phải dài từ 10 đến 255 ký tự.";
+                header('Location: ' . BASE_URL . '/Product/checkout');
+                exit();
+            }
+
+            $name = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+            $phone = htmlspecialchars($phone, ENT_QUOTES, 'UTF-8');
+            $address = htmlspecialchars($address, ENT_QUOTES, 'UTF-8');
+
             if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
                 $_SESSION['error_msg'] = "Giỏ hàng của bạn đang trống.";
                 header('Location: ' . BASE_URL . '/Product/cart');
