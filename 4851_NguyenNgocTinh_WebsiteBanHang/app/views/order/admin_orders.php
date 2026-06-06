@@ -62,11 +62,20 @@
                                 $statusColors = ['warning', 'info', 'primary', 'success'];
                                 
                                 $isCanceled = ($order->status === 'Đã hủy');
+                                $isCompleted = ($order->status === 'Hoàn thành');
+                                $isReturnReq = ($order->status === 'Yêu cầu hoàn trả');
+                                
                                 $currentIdx = array_search($order->status, $statuses);
                                 
                                 if ($isCanceled) {
                                     $colorClass = 'danger';
                                     $icon = 'fa-circle-xmark';
+                                } elseif ($isCompleted) {
+                                    $colorClass = 'success';
+                                    $icon = 'fa-check-double';
+                                } elseif ($isReturnReq) {
+                                    $colorClass = 'warning';
+                                    $icon = 'fa-rotate-left';
                                 } else {
                                     if ($currentIdx === false) $currentIdx = 0;
                                     $colorClass = $statusColors[$currentIdx] ?? 'secondary';
@@ -80,6 +89,10 @@
                                     </span>
                                     <?php if ($isCanceled): ?>
                                         <span class="text-danger" style="font-size: 12px;"><i class="fa-solid fa-ban me-1"></i>Đã hủy bỏ</span>
+                                    <?php elseif ($isCompleted): ?>
+                                        <span class="text-success" style="font-size: 12px;"><i class="fa-solid fa-check-double me-1"></i>Đã hoàn thành</span>
+                                    <?php elseif ($isReturnReq): ?>
+                                        <span class="text-warning text-dark" style="font-size: 12px;"><i class="fa-solid fa-exclamation-triangle me-1"></i>Chờ xử lý</span>
                                     <?php elseif ($currentIdx !== false && $currentIdx < count($statuses) - 1): ?>
                                         <form action="<?php echo BASE_URL; ?>/Order/updateStatus" method="POST" class="d-inline">
                                             <input type="hidden" name="id" value="<?php echo $order->id; ?>">

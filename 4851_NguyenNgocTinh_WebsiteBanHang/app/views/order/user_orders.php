@@ -55,17 +55,13 @@
                             <td>
                                 <?php
                                 $badgeClass = 'bg-secondary';
-                                if ($order->status === 'Chờ xác nhận') {
-                                    $badgeClass = 'bg-warning text-dark';
-                                } elseif ($order->status === 'Đang chuẩn bị hàng') {
-                                    $badgeClass = 'bg-info text-dark';
-                                } elseif ($order->status === 'Đang giao hàng') {
-                                    $badgeClass = 'bg-primary';
-                                } elseif ($order->status === 'Đã giao hàng') {
-                                    $badgeClass = 'bg-success';
-                                } elseif ($order->status === 'Đã hủy') {
-                                    $badgeClass = 'bg-danger';
-                                }
+                                if ($order->status === 'Chờ xác nhận') $badgeClass = 'bg-warning text-dark';
+                                elseif ($order->status === 'Đang chuẩn bị hàng') $badgeClass = 'bg-info text-dark';
+                                elseif ($order->status === 'Đang giao hàng') $badgeClass = 'bg-primary';
+                                elseif ($order->status === 'Đã giao hàng') $badgeClass = 'bg-success';
+                                elseif ($order->status === 'Đã hủy') $badgeClass = 'bg-danger';
+                                elseif ($order->status === 'Hoàn thành') $badgeClass = 'bg-success';
+                                elseif ($order->status === 'Yêu cầu hoàn trả') $badgeClass = 'bg-warning text-dark';
                                 ?>
                                 <span class="badge <?php echo $badgeClass; ?>" style="font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 6px;">
                                     <?php echo htmlspecialchars($order->status, ENT_QUOTES, 'UTF-8'); ?>
@@ -81,6 +77,20 @@
                                             <input type="hidden" name="id" value="<?php echo $order->id; ?>">
                                             <button type="button" onclick="confirmCancel(<?php echo $order->id; ?>)" class="btn btn-sm py-1 px-3 w-100" title="Hủy đơn hàng" style="border: 1px solid #ff4d4f; color: #ff4d4f; background: transparent; border-radius: 20px; transition: all 0.2s;">
                                                 <i class="fa-solid fa-xmark me-1"></i> Hủy
+                                            </button>
+                                        </form>
+                                    <?php elseif ($order->status === 'Đã giao hàng'): ?>
+                                        <form action="<?php echo BASE_URL; ?>/Order/completeOrder" method="POST" class="w-100 m-0 mt-1" id="complete-form-<?php echo $order->id; ?>">
+                                            <input type="hidden" name="id" value="<?php echo $order->id; ?>">
+                                            <button type="button" onclick="confirmComplete(<?php echo $order->id; ?>)" class="btn btn-sm py-1 px-3 w-100 btn-complete-hover" title="Đã nhận được hàng" style="border: 1px solid #30d158; color: #30d158; background: transparent; border-radius: 20px; transition: all 0.2s;">
+                                                <i class="fa-solid fa-check me-1"></i> Đã nhận
+                                            </button>
+                                        </form>
+                                        <form action="<?php echo BASE_URL; ?>/Order/returnOrder" method="POST" class="w-100 m-0 mt-1" id="return-form-<?php echo $order->id; ?>">
+                                            <input type="hidden" name="id" value="<?php echo $order->id; ?>">
+                                            <input type="hidden" name="return_reason" id="return-reason-<?php echo $order->id; ?>" value="">
+                                            <button type="button" onclick="confirmReturn(<?php echo $order->id; ?>)" class="btn btn-sm py-1 px-3 w-100 btn-return-hover" title="Yêu cầu hoàn trả" style="border: 1px solid #ff9f0a; color: #ff9f0a; background: transparent; border-radius: 20px; transition: all 0.2s;">
+                                                <i class="fa-solid fa-rotate-left me-1"></i> Hoàn trả
                                             </button>
                                         </form>
                                     <?php endif; ?>
@@ -116,12 +126,72 @@ function confirmCancel(orderId) {
         }
     });
 }
+
+function confirmComplete(orderId) {
+    Swal.fire({
+        title: 'Đã nhận được hàng?',
+        text: "Bạn xác nhận đơn hàng đã được giao thành công và không có lỗi gì?",
+        icon: 'success',
+        showCancelButton: true,
+        confirmButtonColor: '#30d158',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fa-solid fa-check me-1"></i>Xác nhận',
+        cancelButtonText: 'Đóng',
+        customClass: {
+            confirmButton: 'btn btn-success px-4 py-2 me-2',
+            cancelButton: 'btn btn-secondary px-4 py-2'
+        },
+        buttonsStyling: false
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('complete-form-' + orderId).submit();
+        }
+    });
+}
+
+function confirmReturn(orderId) {
+    Swal.fire({
+        title: 'Yêu cầu hoàn trả?',
+        text: "Vui lòng nhập lý do hoàn trả (hàng lỗi, sai mẫu mã,...):",
+        input: 'textarea',
+        inputPlaceholder: 'Nhập lý do tại đây...',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ff9f0a',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fa-solid fa-rotate-left me-1"></i>Gửi yêu cầu',
+        cancelButtonText: 'Đóng',
+        customClass: {
+            confirmButton: 'btn btn-warning px-4 py-2 me-2',
+            cancelButton: 'btn btn-secondary px-4 py-2'
+        },
+        buttonsStyling: false,
+        inputValidator: (value) => {
+            if (!value) {
+                return 'Bạn cần nhập lý do hoàn trả!'
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('return-reason-' + orderId).value = result.value;
+            document.getElementById('return-form-' + orderId).submit();
+        }
+    });
+}
 </script>
 
 <style>
     /* Add hover effect for the cancel button */
     button[onclick^="confirmCancel"]:hover {
         background-color: #ff4d4f !important;
+        color: white !important;
+    }
+    .btn-complete-hover:hover {
+        background-color: #30d158 !important;
+        color: white !important;
+    }
+    .btn-return-hover:hover {
+        background-color: #ff9f0a !important;
         color: white !important;
     }
 </style>

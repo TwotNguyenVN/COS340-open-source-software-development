@@ -62,11 +62,20 @@ class OrderModel
         return $stmt->execute();
     }
 
+    public function updateOrderNotes($orderId, $notes)
+    {
+        $query = "UPDATE " . $this->table_name . " SET notes = :notes WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':notes', $notes, PDO::PARAM_STR);
+        $stmt->bindParam(':id', $orderId, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
     public function getRevenueByDate()
     {
         $query = "SELECT DATE(created_at) as date, COUNT(id) as total_orders, SUM(total_amount) as daily_revenue 
                   FROM " . $this->table_name . " 
-                  WHERE status = 'Đã giao hàng'
+                  WHERE status IN ('Đã giao hàng', 'Hoàn thành')
                   GROUP BY DATE(created_at) 
                   ORDER BY date DESC";
         $stmt = $this->conn->prepare($query);

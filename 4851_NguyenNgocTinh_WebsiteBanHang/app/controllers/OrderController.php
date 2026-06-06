@@ -177,6 +177,59 @@ class OrderController
         exit();
     }
 
+    public function completeOrder()
+    {
+        $this->requireLogin();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
+            $orderId = (int)$_POST['id'];
+            $order = $this->orderModel->getOrderById($orderId);
+
+            if ($order && $order->account_id === $_SESSION['user_id'] && $order->status === 'Đã giao hàng') {
+                if ($this->orderModel->updateOrderStatus($orderId, 'Hoàn thành')) {
+                    $_SESSION['success_msg'] = "Xác nhận nhận hàng thành công!";
+                } else {
+                    $_SESSION['error_msg'] = "Có lỗi xảy ra, vui lòng thử lại.";
+                }
+            } else {
+                $_SESSION['error_msg'] = "Không thể xác nhận đơn hàng này.";
+            }
+        }
+
+        $referer = $_SERVER['HTTP_REFERER'] ?? BASE_URL . '/Order';
+        header('Location: ' . $referer);
+        exit();
+    }
+
+    public function returnOrder()
+    {
+        $this->requireLogin();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
+            $orderId = (int)$_POST['id'];
+            $reason = isset($_POST['return_reason']) ? trim($_POST['return_reason']) : '';
+            $order = $this->orderModel->getOrderById($orderId);
+
+            if ($order && $order->account_id === $_SESSION['user_id'] && $order->status === 'Đã giao hàng') {
+                if ($this->orderModel->updateOrderStatus($orderId, 'Yêu cầu hoàn trả')) {
+                    if (!empty($reason)) {
+                        $newNotes = $order->notes ? $order->notes . "\n[Hoàn trả] " . $reason : "[Hoàn trả] " . $reason;
+                        $this->orderModel->updateOrderNotes($orderId, $newNotes);
+                    }
+                    $_SESSION['success_msg'] = "Gửi yêu cầu hoàn trả thành công!";
+                } else {
+                    $_SESSION['error_msg'] = "Có lỗi xảy ra, vui lòng thử lại.";
+                }
+            } else {
+                $_SESSION['error_msg'] = "Không thể hoàn trả đơn hàng này.";
+            }
+        }
+
+        $referer = $_SERVER['HTTP_REFERER'] ?? BASE_URL . '/Order';
+        header('Location: ' . $referer);
+        exit();
+    }
+
     public function revenue()
     {
         $this->requireLogin();
