@@ -130,6 +130,53 @@ class OrderController
         }
     }
 
+    public function cancel()
+    {
+        $this->requireLogin();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $orderId = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+            $order = $this->orderModel->getOrderById($orderId);
+
+            if (!$order) {
+                $_SESSION['error_msg'] = "Không tìm thấy đơn hàng.";
+                header('Location: ' . BASE_URL . '/Order');
+                exit();
+            }
+
+            if (!SessionHelper::isAdmin() && $order->account_id != $_SESSION['user_id']) {
+                $_SESSION['error_msg'] = "Quyền truy cập bị từ chối.";
+                header('Location: ' . BASE_URL . '/Order');
+                exit();
+            }
+
+            if ($order->status !== 'Chờ xác nhận') {
+                $_SESSION['error_msg'] = "Đơn hàng đã được xử lý, không thể hủy.";
+                header('Location: ' . BASE_URL . '/Order/show/' . $orderId);
+                exit();
+            }
+
+            $result = $this->orderModel->updateOrderStatus($orderId, 'Đã hủy');
+            if ($result) {
+                $_SESSION['success_msg'] = "Hủy đơn hàng thành công.";
+            } else {
+                $_SESSION['error_msg'] = "Có lỗi xảy ra khi hủy đơn hàng.";
+            }
+            
+            // Redirect back to detail or list depending on where they clicked it
+            $referer = $_SERVER['HTTP_REFERER'] ?? '';
+            if (strpos($referer, '/Order/show/') !== false) {
+                header('Location: ' . BASE_URL . '/Order/show/' . $orderId);
+            } else {
+                header('Location: ' . BASE_URL . '/Order');
+            }
+            exit();
+        }
+        
+        header('Location: ' . BASE_URL . '/Order');
+        exit();
+    }
+
     public function revenue()
     {
         $this->requireLogin();
