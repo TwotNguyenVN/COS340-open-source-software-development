@@ -115,7 +115,7 @@ class OrderModel
     {
         $query = "SELECT DATE(created_at) as date, COUNT(id) as total_orders, SUM(total_amount) as daily_revenue 
                   FROM " . $this->table_name . " 
-                  WHERE status IN ('Đã giao hàng', 'Hoàn thành')";
+                  WHERE status IN ('Đã giao hàng', 'Hoàn thành', 'Từ chối hoàn trả')";
                   
         if ($startDate && $endDate) {
             $query .= " AND DATE(created_at) BETWEEN :start_date AND :end_date";
@@ -139,7 +139,7 @@ class OrderModel
     {
         $query = "SELECT *, DATE(created_at) as date_only 
                   FROM " . $this->table_name . " 
-                  WHERE status IN ('Đã giao hàng', 'Hoàn thành')";
+                  WHERE status IN ('Đã giao hàng', 'Hoàn thành', 'Từ chối hoàn trả')";
                   
         if ($startDate && $endDate) {
             $query .= " AND DATE(created_at) BETWEEN :start_date AND :end_date";
