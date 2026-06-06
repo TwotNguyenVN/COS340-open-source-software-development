@@ -38,7 +38,13 @@ class OrderController
         $this->requireLogin();
 
         if (SessionHelper::isAdmin()) {
-            $orders = $this->orderModel->getAllOrders();
+            $filters = [
+                'search' => $_GET['search'] ?? '',
+                'start_date' => $_GET['start_date'] ?? '',
+                'end_date' => $_GET['end_date'] ?? '',
+                'status' => $_GET['status'] ?? 'Tất cả'
+            ];
+            $orders = $this->orderModel->searchOrders($filters);
             include 'app/views/order/admin_orders.php';
         } else {
             $accountId = $_SESSION['user_id'];
