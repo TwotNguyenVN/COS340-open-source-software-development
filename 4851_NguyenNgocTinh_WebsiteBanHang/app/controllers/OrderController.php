@@ -303,14 +303,50 @@ class OrderController
             exit();
         }
 
-        $revenues = $this->orderModel->getRevenueByDate();
+        $filter = $_GET['filter'] ?? '7days';
+        $endDate = date('Y-m-d');
+        
+        if ($filter === '30days') {
+            $startDate = date('Y-m-d', strtotime('-29 days'));
+        } elseif ($filter === 'month') {
+            $startDate = date('Y-m-01');
+        } else {
+            // Default 7 days
+            $filter = '7days';
+            $startDate = date('Y-m-d', strtotime('-6 days'));
+        }
+
+        $revenues = $this->orderModel->getRevenueByDate($startDate, $endDate);
         
         $totalRevenue = 0;
         $totalCompletedOrders = 0;
+        
+        // Prepare chart data map for all days in range
+        $chartDataMap = [];
+        $current = strtotime($startDate);
+        $end = strtotime($endDate);
+        
+        while ($current <= $end) {
+            $dateStr = date('Y-m-d', $current);
+            $chartDataMap[$dateStr] = [
+                'date' => date('d/m', $current),
+                'revenue' => 0
+            ];
+            $current = strtotime('+1 day', $current);
+        }
+
         foreach ($revenues as $r) {
             $totalRevenue += $r->daily_revenue;
             $totalCompletedOrders += $r->total_orders;
+            
+            // Populate chart data if day exists in our map
+            if (isset($chartDataMap[$r->date])) {
+                $chartDataMap[$r->date]['revenue'] = $r->daily_revenue;
+            }
         }
+        
+        $chartLabels = json_encode(array_column($chartDataMap, 'date'));
+        $chartRevenues = json_encode(array_column($chartDataMap, 'revenue'));
 
         include 'app/views/order/revenue.php';
     }

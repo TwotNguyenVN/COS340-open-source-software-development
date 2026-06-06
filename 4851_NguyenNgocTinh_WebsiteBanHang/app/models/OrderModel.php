@@ -111,14 +111,26 @@ class OrderModel
         return $stmt->execute();
     }
 
-    public function getRevenueByDate()
+    public function getRevenueByDate($startDate = null, $endDate = null)
     {
         $query = "SELECT DATE(created_at) as date, COUNT(id) as total_orders, SUM(total_amount) as daily_revenue 
                   FROM " . $this->table_name . " 
-                  WHERE status IN ('Đã giao hàng', 'Hoàn thành')
-                  GROUP BY DATE(created_at) 
-                  ORDER BY date DESC";
+                  WHERE status IN ('Đã giao hàng', 'Hoàn thành')";
+                  
+        if ($startDate && $endDate) {
+            $query .= " AND DATE(created_at) BETWEEN :start_date AND :end_date";
+        }
+        
+        $query .= " GROUP BY DATE(created_at) 
+                    ORDER BY date DESC";
+                    
         $stmt = $this->conn->prepare($query);
+        
+        if ($startDate && $endDate) {
+            $stmt->bindParam(':start_date', $startDate);
+            $stmt->bindParam(':end_date', $endDate);
+        }
+        
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
