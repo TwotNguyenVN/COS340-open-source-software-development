@@ -15,6 +15,8 @@ $currentStatusIndex = array_search($order->status, $statuses);
 if ($currentStatusIndex === false) {
     $currentStatusIndex = 0;
 }
+$terminalStatuses = ['Đã hủy', 'Hoàn thành', 'Yêu cầu hoàn trả', 'Từ chối hoàn trả', 'Đã thu hồi'];
+$isTerminalStatus = in_array($order->status, $terminalStatuses);
 ?>
 
 <div class="mb-4">
@@ -29,7 +31,16 @@ if ($currentStatusIndex === false) {
         
         <div class="col-md-6 text-md-end mt-3 mt-md-0">
             <?php if (SessionHelper::isAdmin()): ?>
-                <?php if ($currentStatusIndex < count($statuses) - 1 && $order->status !== 'Đã hủy'): ?>
+                <?php if ($order->status === 'Đã duyệt hoàn trả'): ?>
+                    <form action="<?php echo BASE_URL; ?>/Order/updateStatus" method="POST" class="d-inline">
+                        <input type="hidden" name="id" value="<?php echo $order->id; ?>">
+                        <input type="hidden" name="csrf_token" value="<?php echo SessionHelper::getCSRFToken(); ?>">
+                        <input type="hidden" name="status" value="Đã thu hồi">
+                        <button type="submit" class="btn btn-premium px-4 py-2">
+                            <i class="fa-solid fa-arrow-right me-2"></i>Chuyển sang: <strong>Đã thu hồi</strong>
+                        </button>
+                    </form>
+                <?php elseif (!$isTerminalStatus && $order->status !== 'Đã giao hàng' && $currentStatusIndex < count($statuses) - 1): ?>
                     <form action="<?php echo BASE_URL; ?>/Order/updateStatus" method="POST" class="d-inline">
                         <input type="hidden" name="id" value="<?php echo $order->id; ?>">
                         <input type="hidden" name="csrf_token" value="<?php echo SessionHelper::getCSRFToken(); ?>">
@@ -41,6 +52,10 @@ if ($currentStatusIndex === false) {
                 <?php elseif ($order->status === 'Đã giao hàng'): ?>
                     <span class="badge bg-success px-3 py-2" style="font-size: 14px; border-radius: 8px;">
                         <i class="fa-solid fa-check-double me-2"></i>Hoàn tất giao hàng
+                    </span>
+                <?php elseif ($order->status === 'Đã thu hồi'): ?>
+                    <span class="badge bg-success px-3 py-2" style="font-size: 14px; border-radius: 8px;">
+                        <i class="fa-solid fa-check-double me-2"></i>Đã thu hồi hàng
                     </span>
                 <?php endif; ?>
             <?php elseif ($order->status === 'Chờ xác nhận'): ?>
@@ -76,12 +91,14 @@ if ($currentStatusIndex === false) {
     <h4 class="text-danger fw-bold">Đơn hàng đã bị hủy</h4>
     <p class="text-muted">Đơn hàng này đã được hủy và sẽ không được giao.</p>
 </div>
-<?php elseif ($order->status === 'Yêu cầu hoàn trả' || $order->status === 'Đã duyệt hoàn trả' || $order->status === 'Từ chối hoàn trả'): ?>
-<div class="glass-card mb-4 p-4" style="border-left: 4px solid <?php echo $order->status === 'Từ chối hoàn trả' ? '#ff4d4f' : ($order->status === 'Đã duyệt hoàn trả' ? '#30d158' : '#ff9f0a'); ?>;">
+<?php elseif ($order->status === 'Yêu cầu hoàn trả' || $order->status === 'Đã duyệt hoàn trả' || $order->status === 'Từ chối hoàn trả' || $order->status === 'Đã thu hồi'): ?>
+<div class="glass-card mb-4 p-4" style="border-left: 4px solid <?php echo $order->status === 'Từ chối hoàn trả' ? '#ff4d4f' : (($order->status === 'Đã duyệt hoàn trả' || $order->status === 'Đã thu hồi') ? '#30d158' : '#ff9f0a'); ?>;">
     <div class="d-flex align-items-start">
         <div class="me-3 mt-1">
             <?php if ($order->status === 'Đã duyệt hoàn trả'): ?>
                 <i class="fa-solid fa-check-circle text-success" style="font-size: 2.5rem;"></i>
+            <?php elseif ($order->status === 'Đã thu hồi'): ?>
+                <i class="fa-solid fa-box-archive text-success" style="font-size: 2.5rem;"></i>
             <?php elseif ($order->status === 'Từ chối hoàn trả'): ?>
                 <i class="fa-solid fa-times-circle text-danger" style="font-size: 2.5rem;"></i>
             <?php else: ?>
@@ -215,6 +232,7 @@ if ($currentStatusIndex === false) {
                 elseif ($order->status === 'Yêu cầu hoàn trả') $badgeClass = 'bg-warning text-dark';
                 elseif ($order->status === 'Đã duyệt hoàn trả') $badgeClass = 'bg-success';
                 elseif ($order->status === 'Từ chối hoàn trả') $badgeClass = 'bg-danger';
+                elseif ($order->status === 'Đã thu hồi') $badgeClass = 'bg-success';
                 ?>
                 <span class="badge <?php echo $badgeClass; ?> px-3 py-2 font-size-14" style="border-radius: 6px; font-weight: 500;">
                     <?php echo htmlspecialchars($order->status, ENT_QUOTES, 'UTF-8'); ?>
