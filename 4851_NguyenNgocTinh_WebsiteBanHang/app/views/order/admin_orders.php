@@ -121,8 +121,11 @@ $allStatuses = ['Tất cả', 'Chờ xác nhận', 'Đang chuẩn bị hàng', '
                                 $isCanceled = ($order->status === 'Đã hủy');
                                 $isCompleted = ($order->status === 'Hoàn thành');
                                 $isReturnReq = ($order->status === 'Yêu cầu hoàn trả');
+                                $isReturnApproved = ($order->status === 'Đã duyệt hoàn trả');
+                                $isReturnRejected = ($order->status === 'Từ chối hoàn trả');
                                 
                                 $currentIdx = array_search($order->status, $statuses);
+                                $isTerminalStatus = in_array($order->status, ['Đã hủy', 'Hoàn thành', 'Yêu cầu hoàn trả', 'Đã duyệt hoàn trả', 'Từ chối hoàn trả']);
                                 
                                 if ($isCanceled) {
                                     $colorClass = 'danger';
@@ -133,6 +136,12 @@ $allStatuses = ['Tất cả', 'Chờ xác nhận', 'Đang chuẩn bị hàng', '
                                 } elseif ($isReturnReq) {
                                     $colorClass = 'warning';
                                     $icon = 'fa-rotate-left';
+                                } elseif ($isReturnApproved) {
+                                    $colorClass = 'success';
+                                    $icon = 'fa-check-circle';
+                                } elseif ($isReturnRejected) {
+                                    $colorClass = 'danger';
+                                    $icon = 'fa-times-circle';
                                 } else {
                                     if ($currentIdx === false) $currentIdx = 0;
                                     $colorClass = $statusColors[$currentIdx] ?? 'secondary';
@@ -150,7 +159,11 @@ $allStatuses = ['Tất cả', 'Chờ xác nhận', 'Đang chuẩn bị hàng', '
                                         <span class="text-success" style="font-size: 12px;"><i class="fa-solid fa-check-double me-1"></i>Đã hoàn thành</span>
                                     <?php elseif ($isReturnReq): ?>
                                         <span class="text-warning text-dark" style="font-size: 12px;"><i class="fa-solid fa-exclamation-triangle me-1"></i>Chờ xử lý</span>
-                                    <?php elseif ($currentIdx !== false && $currentIdx < count($statuses) - 1): ?>
+                                    <?php elseif ($isReturnApproved): ?>
+                                        <span class="text-success" style="font-size: 12px;"><i class="fa-solid fa-truck-ramp-box me-1"></i>Chờ thu hồi</span>
+                                    <?php elseif ($isReturnRejected): ?>
+                                        <span class="text-danger" style="font-size: 12px;"><i class="fa-solid fa-xmark me-1"></i>Đã từ chối</span>
+                                    <?php elseif (!$isTerminalStatus && $currentIdx !== false && $currentIdx < count($statuses) - 1): ?>
                                         <form action="<?php echo BASE_URL; ?>/Order/updateStatus" method="POST" class="d-inline">
                                             <input type="hidden" name="id" value="<?php echo $order->id; ?>">
                                             <input type="hidden" name="csrf_token" value="<?php echo SessionHelper::getCSRFToken(); ?>">
@@ -159,7 +172,7 @@ $allStatuses = ['Tất cả', 'Chờ xác nhận', 'Đang chuẩn bị hàng', '
                                                 <i class="fa-solid fa-arrow-right me-1"></i><?php echo htmlspecialchars($statuses[$currentIdx + 1], ENT_QUOTES, 'UTF-8'); ?>
                                             </button>
                                         </form>
-                                    <?php else: ?>
+                                    <?php elseif (!$isTerminalStatus): ?>
                                         <span class="text-success" style="font-size: 12px;"><i class="fa-solid fa-check-double me-1"></i>Hoàn tất</span>
                                     <?php endif; ?>
                                 </div>
