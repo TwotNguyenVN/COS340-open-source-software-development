@@ -182,10 +182,19 @@
                         <a href="<?php echo BASE_URL; ?>/Product/edit/<?php echo $product->id; ?>" class="btn btn-premium-warning px-4 py-2">
                             <i class="fa-solid fa-pen-to-square me-2"></i>Chỉnh sửa
                         </a>
-                        <button onclick="confirmDelete('<?php echo $product->id; ?>', '<?php echo htmlspecialchars($product->name, ENT_QUOTES, 'UTF-8'); ?>')" class="btn btn-premium-danger px-4 py-2">
-                            <i class="fa-solid fa-trash-can me-2"></i>Xóa
-                        </button>
+                        <?php if ($isSold): ?>
+                            <span title="Sản phẩm này đã có trong đơn hàng, không thể xóa." data-bs-toggle="tooltip" data-bs-placement="top">
+                                <button class="btn btn-premium-danger px-4 py-2" disabled style="opacity: 0.45; cursor: not-allowed; pointer-events: none;">
+                                    <i class="fa-solid fa-lock me-2"></i>Không thể xóa
+                                </button>
+                            </span>
+                        <?php else: ?>
+                            <button onclick="confirmDelete('<?php echo $product->id; ?>', '<?php echo htmlspecialchars($product->name, ENT_QUOTES, 'UTF-8'); ?>')" class="btn btn-premium-danger px-4 py-2">
+                                <i class="fa-solid fa-trash-can me-2"></i>Xóa
+                            </button>
+                        <?php endif; ?>
                     <?php endif; ?>
+
                     <a href="<?php echo BASE_URL; ?>/Product" class="btn btn-glass-secondary px-4 py-2">
                         <i class="fa-solid fa-arrow-left me-2"></i>Quay lại
                     </a>
