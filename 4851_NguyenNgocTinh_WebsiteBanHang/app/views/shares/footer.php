@@ -24,8 +24,8 @@
     <script>
         // Global AJAX setup to always send JWT token if available
         $.ajaxSetup({
-            beforeSend: function(xhr) {
-                const token = localStorage.getItem('jwt_token');
+            beforeSend: function(xhr, settings) {
+                const token = localStorage.getItem('jwtToken');
                 if (token) {
                     xhr.setRequestHeader('Authorization', 'Bearer ' + token);
                 }
