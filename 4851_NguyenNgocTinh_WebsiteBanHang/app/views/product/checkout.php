@@ -111,12 +111,12 @@
                 </div>
             </div>
 
-            <form method="POST" action="<?php echo BASE_URL; ?>/Product/processCheckout">
+            <form id="checkoutForm" method="POST" action="<?php echo BASE_URL; ?>/Product/processCheckout" novalidate>
                 <div class="mb-4">
                     <label for="name" class="form-label">Họ và tên người nhận:</label>
                     <div class="input-group">
                         <span class="input-group-text form-control-glass border-end-0" style="background: rgba(255,255,255,0.02);"><i class="fa-solid fa-user text-muted"></i></span>
-                        <input type="text" id="name" name="name" class="form-control form-control-glass border-start-0 ps-0" placeholder="Ví dụ: Nguyễn Văn A" required>
+                        <input type="text" id="name" name="name" class="form-control form-control-glass border-start-0 ps-0" placeholder="Ví dụ: Nguyễn Văn A" minlength="2" maxlength="50" pattern="^[\p{L}\s]{2,50}$" required>
                     </div>
                 </div>
 
@@ -124,7 +124,7 @@
                     <label for="phone" class="form-label">Số điện thoại liên hệ:</label>
                     <div class="input-group">
                         <span class="input-group-text form-control-glass border-end-0" style="background: rgba(255,255,255,0.02);"><i class="fa-solid fa-phone text-muted"></i></span>
-                        <input type="text" id="phone" name="phone" class="form-control form-control-glass border-start-0 ps-0" placeholder="Ví dụ: 0912345678" required>
+                        <input type="text" id="phone" name="phone" class="form-control form-control-glass border-start-0 ps-0" placeholder="Ví dụ: 0912345678" pattern="^(03|05|07|08|09)\d{8}$" required>
                     </div>
                 </div>
 
@@ -132,7 +132,7 @@
                     <label for="address" class="form-label">Địa chỉ giao hàng:</label>
                     <div class="input-group">
                         <span class="input-group-text form-control-glass border-end-0 align-items-start pt-3" style="background: rgba(255,255,255,0.02);"><i class="fa-solid fa-location-dot text-muted"></i></span>
-                        <textarea id="address" name="address" class="form-control form-control-glass border-start-0 ps-0" rows="3" placeholder="Nhập số nhà, tên đường, phường/xã, quận/huyện, thành phố..." required></textarea>
+                        <textarea id="address" name="address" class="form-control form-control-glass border-start-0 ps-0" rows="3" placeholder="Nhập số nhà, tên đường, phường/xã, quận/huyện, thành phố..." minlength="10" maxlength="255" required></textarea>
                     </div>
                 </div>
 
@@ -150,5 +150,66 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('checkoutForm');
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('name').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const address = document.getElementById('address').value.trim();
+        
+        // Validation patterns
+        const nameRegex = /^[\p{L}\s]{2,50}$/u;
+        const phoneRegex = /^(03|05|07|08|09)\d{8}$/;
+        
+        if (name === '' || phone === '' || address === '') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Thiếu thông tin',
+                text: 'Vui lòng điền đầy đủ tất cả các trường!',
+                confirmButtonColor: '#0071e3'
+            });
+            return;
+        }
+        
+        if (!nameRegex.test(name)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Tên không hợp lệ',
+                text: 'Họ và tên chỉ được chứa chữ cái và khoảng trắng, độ dài từ 2-50 ký tự.',
+                confirmButtonColor: '#0071e3'
+            });
+            return;
+        }
+        
+        if (!phoneRegex.test(phone)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Số điện thoại không hợp lệ',
+                text: 'Số điện thoại phải gồm 10 số và bắt đầu bằng các đầu số hợp lệ của Việt Nam (03, 05, 07, 08, 09).',
+                confirmButtonColor: '#0071e3'
+            });
+            return;
+        }
+        
+        if (address.length < 10 || address.length > 255) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Địa chỉ chưa rõ ràng',
+                text: 'Địa chỉ giao hàng phải dài từ 10 đến 255 ký tự.',
+                confirmButtonColor: '#0071e3'
+            });
+            return;
+        }
+        
+        // Nếu qua hết thì submit
+        form.submit();
+    });
+});
+</script>
 
 <?php include 'app/views/shares/footer.php'; ?>
