@@ -429,27 +429,17 @@ function confirmDelete(id, name) {
         cancelButtonText: 'Hủy'
     }).then((result) => {
         if (result.isConfirmed) {
-            const jwtToken = localStorage.getItem('jwtToken');
             $.ajax({
                 url: baseUrl + '/api/product/' + id,
                 method: 'DELETE',
-                headers: {
-                    'Authorization': 'Bearer ' + jwtToken
-                },
                 success: function(response) {
-                    Swal.fire({
-                        title: 'Đã xóa!',
-                        text: 'Sản phẩm đã được xóa thành công.',
-                        icon: 'success',
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
+                    Swal.fire('Đã xóa!', 'Sản phẩm đã được xóa.', 'success');
                     loadProducts(1);
                 },
                 error: function(xhr) {
                     let msg = 'Đã xảy ra lỗi khi xóa.';
-                    if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                    Swal.fire('Không thể xóa!', msg, 'error');
+                    if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                    Swal.fire('Lỗi', msg, 'error');
                 }
             });
         }
