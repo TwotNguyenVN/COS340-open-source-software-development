@@ -60,17 +60,27 @@
                                 $statuses = ['Chờ xác nhận', 'Đang chuẩn bị hàng', 'Đang giao hàng', 'Đã giao hàng'];
                                 $statusIcons = ['fa-clock', 'fa-box-open', 'fa-truck', 'fa-circle-check'];
                                 $statusColors = ['warning', 'info', 'primary', 'success'];
+                                
+                                $isCanceled = ($order->status === 'Đã hủy');
                                 $currentIdx = array_search($order->status, $statuses);
-                                if ($currentIdx === false) $currentIdx = 0;
-                                $colorClass = $statusColors[$currentIdx] ?? 'secondary';
-                                $icon = $statusIcons[$currentIdx] ?? 'fa-circle';
+                                
+                                if ($isCanceled) {
+                                    $colorClass = 'danger';
+                                    $icon = 'fa-circle-xmark';
+                                } else {
+                                    if ($currentIdx === false) $currentIdx = 0;
+                                    $colorClass = $statusColors[$currentIdx] ?? 'secondary';
+                                    $icon = $statusIcons[$currentIdx] ?? 'fa-circle';
+                                }
                                 ?>
                                 <div class="d-flex align-items-center gap-2 flex-wrap">
                                     <span class="status-pill status-<?php echo $colorClass; ?>">
                                         <i class="fa-solid <?php echo $icon; ?> me-1"></i>
                                         <?php echo htmlspecialchars($order->status, ENT_QUOTES, 'UTF-8'); ?>
                                     </span>
-                                    <?php if ($currentIdx < count($statuses) - 1): ?>
+                                    <?php if ($isCanceled): ?>
+                                        <span class="text-danger" style="font-size: 12px;"><i class="fa-solid fa-ban me-1"></i>Đã hủy bỏ</span>
+                                    <?php elseif ($currentIdx !== false && $currentIdx < count($statuses) - 1): ?>
                                         <form action="<?php echo BASE_URL; ?>/Order/updateStatus" method="POST" class="d-inline">
                                             <input type="hidden" name="id" value="<?php echo $order->id; ?>">
                                             <input type="hidden" name="csrf_token" value="<?php echo SessionHelper::getCSRFToken(); ?>">
@@ -111,10 +121,13 @@
     .status-info     { background: rgba(10,132,255,0.12); color: #0a84ff; border: 1px solid rgba(10,132,255,0.3); }
     .status-primary  { background: rgba(0,113,227,0.12);  color: #0071e3; border: 1px solid rgba(0,113,227,0.3); }
     .status-success  { background: rgba(48,209,88,0.12);  color: #30d158; border: 1px solid rgba(48,209,88,0.3); }
+    .status-danger   { background: rgba(255,69,58,0.12);  color: #ff453a; border: 1px solid rgba(255,69,58,0.3); }
+    
     [data-theme="light"] .status-warning  { background: rgba(255,149,0,0.08);  color: #b86e00; }
     [data-theme="light"] .status-info     { background: rgba(0,122,255,0.08);  color: #007aff; }
     [data-theme="light"] .status-primary  { background: rgba(0,102,204,0.08);  color: #0066cc; }
     [data-theme="light"] .status-success  { background: rgba(52,199,89,0.08);  color: #1a8a3a; }
+    [data-theme="light"] .status-danger   { background: rgba(255,59,48,0.08);  color: #d70015; }
 
     .btn-next-status {
         display: inline-flex;
