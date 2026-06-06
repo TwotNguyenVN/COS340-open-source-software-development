@@ -1,8 +1,8 @@
-﻿-- MySQL dump 10.13  Distrib 8.0.30, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.4.3, for Win64 (x86_64)
 --
 -- Host: localhost    Database: my_store
 -- ------------------------------------------------------
--- Server version	8.0.30
+-- Server version	8.4.3
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -25,14 +25,15 @@ DROP TABLE IF EXISTS `account`;
 CREATE TABLE `account` (
   `id` int NOT NULL AUTO_INCREMENT,
   `username` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `email` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `fullname` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `role` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'user',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `username` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -41,7 +42,7 @@ CREATE TABLE `account` (
 
 LOCK TABLES `account` WRITE;
 /*!40000 ALTER TABLE `account` DISABLE KEYS */;
-INSERT INTO `account` VALUES (1,'admin',NULL,'Administrator','$2y$12$vZ.q7WSFUkvqv1lBOr/7NeV7/CTxOGy1jPzPE4IIge86jeCuvV9N.','admin','2026-05-19 16:33:07'),(2,'user',NULL,'Nguyễn Văn A','$2y$12$jMLsAnJiXTZtBKNsg8bWdujvCBlRQEJoP7AsvcaevWbebvw8BkP8.','user','2026-05-19 16:33:08');
+INSERT INTO `account` VALUES (1,'admin',NULL,'Administrator','$2y$12$vZ.q7WSFUkvqv1lBOr/7NeV7/CTxOGy1jPzPE4IIge86jeCuvV9N.','admin','2026-05-19 16:33:07'),(2,'user',NULL,'Nguyễn Văn A','$2y$12$jMLsAnJiXTZtBKNsg8bWdujvCBlRQEJoP7AsvcaevWbebvw8BkP8.','user','2026-05-19 16:33:08'),(3,'testuser_1780672121','testuser_1780672121@example.com','Test User','$2y$12$E1dvPtkTj/5dP7U2Sf65FuLii9rGltsoLNKRMxjAWLjh0onbJRY8W','user','2026-06-05 15:08:41'),(4,'testuser_1780672222','testuser_1780672222@example.com','Test User','$2y$12$zXYrsjLDBI7cbSbMjQaF4uCALHBt59LkMyhaT/V3rOrByvX9DRDu.','user','2026-06-05 15:10:22'),(5,'test','test@gmail.com','tui tinh test','$2y$12$Fa.F/cS1YHsdSWgCz7Kxdum7JIHJ51rMg4zraHp5Q0sKFI7RfcU1O','user','2026-06-05 15:13:15');
 /*!40000 ALTER TABLE `account` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -117,9 +118,9 @@ CREATE TABLE `orders` (
   `total_amount` decimal(15,2) DEFAULT '0.00',
   `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'Chờ xác nhận',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `return_reason` text COLLATE utf8mb4_unicode_ci,
-  `return_products` text COLLATE utf8mb4_unicode_ci,
-  `return_admin_reply` text COLLATE utf8mb4_unicode_ci,
+  `return_reason` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `return_products` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `return_admin_reply` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   PRIMARY KEY (`id`),
   KEY `fk_orders_account` (`account_id`),
   CONSTRAINT `fk_orders_account` FOREIGN KEY (`account_id`) REFERENCES `account` (`id`) ON DELETE SET NULL
@@ -132,8 +133,35 @@ CREATE TABLE `orders` (
 
 LOCK TABLES `orders` WRITE;
 /*!40000 ALTER TABLE `orders` DISABLE KEYS */;
-INSERT INTO `orders` VALUES (1,2,'TÌNH NGỌC','0369861439','123 lê đức thọ',NULL,0.00,14390000.00,'Hoàn thành','2026-06-06 01:31:33',NULL,NULL,NULL),(2,2,'TÌNH NGUYỄN NGỌC','0369861439','123 lê đức thọ',NULL,0.00,5590000.00,'Đã thu hồi','2026-06-06 01:42:11','hàng bị lỗi','[\"3\"]','cảm ơn bạn yêu cầu đã được tiếp nhận và chúng tôi sẽ đên thu hồi vào ngày sớm nhất'),(3,2,'TÌNH NGUYỄN NGỌC','0369861439','123 lê đức thọ',NULL,0.00,38530000.00,'Đã giao hàng','2026-06-06 02:30:05',NULL,NULL,NULL),(4,2,'TÌNH NGUYỄN NGỌC','0369861439','123 lê đức thọ',NULL,0.00,33090000.00,'Đã duyệt hoàn trả','2026-06-06 03:14:28','lỗi hàng','[\"1\"]','okii'),(5,2,'TÌNH NGUYỄN NGỌC','0369861439','123 lê đức thọ',NULL,0.00,33090000.00,'Đã hủy','2026-06-06 03:15:54',NULL,NULL,NULL);
+INSERT INTO `orders` VALUES (1,2,'TÌNH NGỌC','0369861439','123 lê đức thọ',NULL,0.00,14390000.00,'Hoàn thành','2026-06-06 01:31:33',NULL,NULL,NULL),(2,2,'TÌNH NGUYỄN NGỌC','0369861439','123 lê đức thọ',NULL,0.00,5590000.00,'Đã thu hồi','2026-06-06 01:42:11','hàng bị lỗi','[\"3\"]','cảm ơn bạn yêu cầu đã được tiếp nhận và chúng tôi sẽ đên thu hồi vào ngày sớm nhất'),(3,2,'TÌNH NGUYỄN NGỌC','0369861439','123 lê đức thọ',NULL,0.00,38530000.00,'Đã giao hàng','2026-06-06 02:30:05',NULL,NULL,NULL),(4,2,'TÌNH NGUYỄN NGỌC','0369861439','123 lê đức thọ',NULL,0.00,33090000.00,'Đã thu hồi','2026-06-06 03:14:28','lỗi hàng','[\"1\"]','okii'),(5,2,'TÌNH NGUYỄN NGỌC','0369861439','123 lê đức thọ',NULL,0.00,33090000.00,'Đã hủy','2026-06-06 03:15:54',NULL,NULL,NULL);
 /*!40000 ALTER TABLE `orders` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `password_resets`
+--
+
+DROP TABLE IF EXISTS `password_resets`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `password_resets` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `otp_code` int NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `password_resets`
+--
+
+LOCK TABLES `password_resets` WRITE;
+/*!40000 ALTER TABLE `password_resets` DISABLE KEYS */;
+INSERT INTO `password_resets` VALUES (1,'testuser_1780672121@example.com',978064,'2026-06-05 15:23:41','2026-06-05 15:08:41');
+/*!40000 ALTER TABLE `password_resets` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -171,10 +199,6 @@ LOCK TABLES `product` WRITE;
 INSERT INTO `product` VALUES (1,'iPhone 15 Pro Max 256GB Titanium','iphone-15-pro-max-256gb-titanium','Thiết kế khung viền titan siêu bền nhẹ, chip A17 Pro đột phá hiệu năng, camera zoom quang học 5x cực đỉnh.',34990000.00,32990000.00,5,'public/uploads/iphone_15_pro_max.png',1,1,'Apple'),(2,'Macbook Air M2 13.6 inch 8GB/256GB','macbook-air-m2-13-6-inch-8gb-256gb','Mỏng nhẹ tinh tế sang trọng, chip Apple M2 mạnh mẽ, màn hình Liquid Retina sống động, pin tối đa 18 tiếng liên tục.',26490000.00,24990000.00,0,'public/uploads/macbook_air_m2.png',2,1,'Apple'),(3,'Tai nghe AirPods Pro Gen 2 USB-C','tai-nghe-airpods-pro-gen-2-usb-c','Chức năng chống ồn chủ động (ANC) thế hệ mới, âm thanh vòm cá nhân hóa, kháng nước IP54.',5890000.00,5490000.00,30,'public/uploads/airpods_pro_2.png',3,0,'Apple'),(4,'iPad Air 5 M1 Wifi 64GB','ipad-air-5-m1-wifi-64gb','Trang bị chip Apple M1 tối tân, hỗ trợ Apple Pencil 2 và Magic Keyboard, màn hình 10.9 inch hiển thị rực rỡ.',15490000.00,14290000.00,23,'public/uploads/ipad_air_5.png',4,0,'Apple');
 /*!40000 ALTER TABLE `product` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Dumping routines for database 'my_store'
---
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -185,4 +209,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-06 10:56:37
+-- Dump completed on 2026-06-06 14:01:09

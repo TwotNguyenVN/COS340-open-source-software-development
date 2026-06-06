@@ -108,7 +108,7 @@ Dự án sở hữu giao diện được thiết kế theo phong cách **Apple P
 1. Khởi động Web Server (Laragon) của bạn.
 2. Mở công cụ quản lý MySQL của bạn (HeidiSQL, phpMyAdmin, DBeaver,...).
 3. Tạo một Database mới có tên là `my_store`.
-4. Mở file [database.sql](file:///d:/laragon/www/4851_NguyenNgocTinh_PTPM_MNM/4851_NguyenNgocTinh_WebsiteBanHang/database.sql) nằm ở thư mục gốc của dự án, sao chép toàn bộ nội dung và thực thi (Run) trên Database `my_store` vừa tạo để khởi tạo cấu trúc bảng (`products`, `categories`, `orders`, `order_details`, `account`) cùng các dữ liệu mẫu.
+4. Mở file [database.sql](file:///d:/laragon/www/4851_NguyenNgocTinh_WebsiteBanHang/database.sql) nằm ở thư mục gốc của dự án, sao chép toàn bộ nội dung và thực thi (Run) trên Database `my_store` vừa tạo để khởi tạo cấu trúc bảng (`products`, `categories`, `orders`, `order_details`, `account`) cùng các dữ liệu mẫu.
 
 ### Bước 2: Cài đặt Dependencies qua Composer
 Mở Terminal tại thư mục dự án và chạy lệnh sau để tự động tải thư viện xử lý token JWT:
@@ -118,11 +118,11 @@ composer install
 *(Nếu hệ thống chưa nhận diện lệnh `composer`, vui lòng sử dụng file thực thi của Laragon hoặc gọi đường dẫn trực tiếp: `d:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe d:\laragon\bin\composer\composer.phar install`)*.
 
 ### Bước 3: Cấu hình Kết nối CSDL
-Nếu thông số MySQL của bạn khác với mặc định của Laragon (User: `root`, Password: trống, Host: `localhost`), hãy mở file [database.php](file:///d:/laragon/www/4851_NguyenNgocTinh_PTPM_MNM/4851_NguyenNgocTinh_WebsiteBanHang/app/config/database.php) để sửa lại cấu hình kết nối.
+Nếu thông số MySQL của bạn khác với mặc định của Laragon (User: `root`, Password: trống, Host: `localhost`), hãy mở file [database.php](file:///d:/laragon/www/4851_NguyenNgocTinh_WebsiteBanHang/app/config/database.php) để sửa lại cấu hình kết nối.
 
 ### Bước 4: Khởi chạy và Trải nghiệm
 1. Truy cập trang web theo URL (Mặc định khi sử dụng Laragon Virtual Hosts):  
-   `http://4851-nguyenngoctinh-websitebanhang.test` hoặc `http://localhost/4851_NguyenNgocTinh_PTPM_MNM/4851_NguyenNgocTinh_WebsiteBanHang/Product`.
+   `http://4851-nguyenngoctinh-websitebanhang.test` hoặc `http://localhost:88/4851_NguyenNgocTinh_WebsiteBanHang/`.
 2. Hệ thống sẽ tự động chặn và đưa bạn đến màn hình Đăng nhập do cơ chế JWT bảo vệ REST API lấy danh sách sản phẩm.
 3. Đăng ký một tài khoản mới tại nút "Đăng ký ngay" hoặc đăng nhập trực tiếp bằng tài khoản mẫu:
    - **Tên đăng nhập**: `admin`
@@ -131,11 +131,7 @@ Nếu thông số MySQL của bạn khác với mặc định của Laragon (Use
 
 ### Bước 5: Sao lưu / Cập nhật dữ liệu từ CSDL vào file `database.sql`
 Khi bạn thêm sản phẩm hoặc thay đổi cấu trúc bảng trên giao diện web và muốn lưu lại trạng thái dữ liệu mới nhất vào file `database.sql` trong dự án để đẩy lên GitHub, hãy mở Terminal/PowerShell và chạy lệnh:
-- **Nếu đang ở thư mục gốc của repository (`D:\laragon\www\4851_NguyenNgocTinh_PTPM_MNM`):**
-  ```powershell
-  & "D:\laragon\bin\mysql\mysql-8.4.3-winx64\bin\mysqldump.exe" -u root my_store > 4851_NguyenNgocTinh_WebsiteBanHang\database.sql
-  ```
-- **Nếu đang ở trong thư mục dự án (`D:\laragon\www\4851_NguyenNgocTinh_PTPM_MNM\4851_NguyenNgocTinh_WebsiteBanHang`):**
+- **Nếu đang ở thư mục gốc của repository (`D:\laragon\www\4851_NguyenNgocTinh_WebsiteBanHang`):**
   ```powershell
   & "D:\laragon\bin\mysql\mysql-8.4.3-winx64\bin\mysqldump.exe" -u root my_store > database.sql
   ```
