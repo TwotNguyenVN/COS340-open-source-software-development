@@ -186,6 +186,7 @@
                             <i class="fa-solid fa-trash-can me-2"></i>Xóa
                         </button>
                     <?php endif; ?>
+
                     <a href="<?php echo BASE_URL; ?>/Product" class="btn btn-glass-secondary px-4 py-2">
                         <i class="fa-solid fa-arrow-left me-2"></i>Quay lại
                     </a>
@@ -211,10 +212,18 @@ function confirmDelete(id, name) {
         cancelButtonText: 'Hủy bỏ'
     }).then((result) => {
         if (result.isConfirmed) {
-            window.location.href = '<?php echo BASE_URL; ?>/Product/delete/' + id + '?csrf_token=<?php echo SessionHelper::getCSRFToken(); ?>';
+            // Submit a hidden form via POST instead of GET
+            const form = document.getElementById('deleteProductForm');
+            form.action = '<?php echo BASE_URL; ?>/Product/delete/' + id;
+            form.submit();
         }
     })
 }
 </script>
+
+<!-- Hidden DELETE form (POST) -->
+<form id="deleteProductForm" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="<?php echo SessionHelper::getCSRFToken(); ?>">
+</form>
 
 <?php include 'app/views/shares/footer.php'; ?>
