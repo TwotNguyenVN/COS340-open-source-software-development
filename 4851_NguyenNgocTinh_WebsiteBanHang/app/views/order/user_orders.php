@@ -73,12 +73,9 @@
                                         <i class="fa-solid fa-circle-info me-1"></i> Chi tiết
                                     </a>
                                     <?php if ($order->status === 'Chờ xác nhận'): ?>
-                                        <form action="<?php echo BASE_URL; ?>/Order/cancel" method="POST" class="w-100 m-0" id="cancel-form-<?php echo $order->id; ?>">
-                                            <input type="hidden" name="id" value="<?php echo $order->id; ?>">
-                                            <button type="button" onclick="confirmCancel(<?php echo $order->id; ?>)" class="btn btn-sm py-1 px-3 w-100" title="Hủy đơn hàng" style="border: 1px solid #ff4d4f; color: #ff4d4f; background: transparent; border-radius: 20px; transition: all 0.2s;">
-                                                <i class="fa-solid fa-xmark me-1"></i> Hủy
-                                            </button>
-                                        </form>
+                                        <a href="<?php echo BASE_URL; ?>/Order/show/<?php echo $order->id; ?>#cancel" class="btn btn-sm py-1 px-3 w-100 cancel-btn-hover" title="Hủy đơn hàng" style="border: 1px solid #ff4d4f; color: #ff4d4f; background: transparent; border-radius: 20px; transition: all 0.2s;">
+                                            <i class="fa-solid fa-xmark me-1"></i> Hủy
+                                        </a>
                                     <?php elseif ($order->status === 'Đã giao hàng'): ?>
                                         <form action="<?php echo BASE_URL; ?>/Order/completeOrder" method="POST" class="w-100 m-0 mt-1" id="complete-form-<?php echo $order->id; ?>">
                                             <input type="hidden" name="id" value="<?php echo $order->id; ?>">
@@ -101,28 +98,6 @@
 </div>
 
 <script>
-function confirmCancel(orderId) {
-    Swal.fire({
-        title: 'Hủy đơn hàng?',
-        text: "Bạn có chắc chắn muốn hủy đơn hàng này không? Thao tác này không thể hoàn tác.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ff4d4f',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="fa-solid fa-check me-1"></i>Đồng ý hủy',
-        cancelButtonText: 'Đóng',
-        customClass: {
-            confirmButton: 'btn btn-danger px-4 py-2 me-2',
-            cancelButton: 'btn btn-secondary px-4 py-2'
-        },
-        buttonsStyling: false
-    }).then((result) => {
-        if (result.isConfirmed) {
-            document.getElementById('cancel-form-' + orderId).submit();
-        }
-    });
-}
-
 function confirmComplete(orderId) {
     Swal.fire({
         title: 'Đã nhận được hàng?',
@@ -148,7 +123,7 @@ function confirmComplete(orderId) {
 
 <style>
     /* Add hover effect for the cancel button */
-    button[onclick^="confirmCancel"]:hover {
+    .cancel-btn-hover:hover {
         background-color: #ff4d4f !important;
         color: white !important;
     }

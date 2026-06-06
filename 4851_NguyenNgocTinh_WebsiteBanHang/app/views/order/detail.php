@@ -532,6 +532,20 @@ function confirmComplete(orderId) {
         }
     });
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.hash === '#cancel') {
+        if (typeof confirmCancel === 'function') {
+            confirmCancel(<?php echo $order->id; ?>);
+        }
+    } else if (window.location.hash === '#return') {
+        var returnModalEl = document.getElementById('returnModal');
+        if (returnModalEl) {
+            var returnModal = new bootstrap.Modal(returnModalEl);
+            returnModal.show();
+        }
+    }
+});
 </script>
 
 <?php include 'app/views/shares/footer.php'; ?>
