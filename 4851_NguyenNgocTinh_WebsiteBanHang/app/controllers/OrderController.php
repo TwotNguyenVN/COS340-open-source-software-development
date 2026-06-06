@@ -345,6 +345,13 @@ class OrderController
             }
         }
         
+        // Fetch specific orders for the detail view
+        $completedOrders = $this->orderModel->getCompletedOrdersByDateRange($startDate, $endDate);
+        $ordersByDate = [];
+        foreach ($completedOrders as $order) {
+            $ordersByDate[$order->date_only][] = $order;
+        }
+        
         $chartLabels = json_encode(array_column($chartDataMap, 'date'));
         $chartRevenues = json_encode(array_column($chartDataMap, 'revenue'));
 

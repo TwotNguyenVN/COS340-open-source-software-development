@@ -57,8 +57,14 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($revenues as $revenue): ?>
-                            <tr>
+                        <?php 
+                            $idx = 0;
+                            foreach ($revenues as $revenue): 
+                                $dateKey = $revenue->date;
+                                $dayOrders = isset($ordersByDate[$dateKey]) ? $ordersByDate[$dateKey] : [];
+                                $idx++;
+                        ?>
+                            <tr data-bs-toggle="collapse" data-bs-target="#collapseDay-<?php echo $idx; ?>" style="cursor: pointer;" class="hover-bg-light">
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="rounded p-2 me-3" style="background: rgba(0, 102, 204, 0.1); color: var(--primary);">
@@ -72,8 +78,42 @@
                                         <?php echo $revenue->total_orders; ?> đơn
                                     </span>
                                 </td>
-                                <td class="text-end fw-bold text-success">
+                                <td class="text-end fw-bold text-success align-middle">
                                     + <?php echo number_format($revenue->daily_revenue, 0, ',', '.'); ?> đ
+                                    <i class="fa-solid fa-chevron-down ms-3 text-muted" style="font-size: 0.8rem;"></i>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="p-0 border-0">
+                                    <div class="collapse" id="collapseDay-<?php echo $idx; ?>">
+                                        <div class="p-3 bg-light" style="border-radius: 0 0 12px 12px; border-bottom: 1px solid rgba(0,0,0,0.05);">
+                                            <?php if (!empty($dayOrders)): ?>
+                                                <h6 class="mb-3 text-muted text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">Các đơn hàng trong ngày</h6>
+                                                <div class="row g-3">
+                                                    <?php foreach ($dayOrders as $order): ?>
+                                                        <div class="col-md-6 col-lg-4">
+                                                            <a href="<?php echo BASE_URL; ?>/Order/show/<?php echo $order->id; ?>" class="text-decoration-none">
+                                                                <div class="card h-100 border-0 shadow-sm hover-lift" style="border-radius: 8px;">
+                                                                    <div class="card-body p-3">
+                                                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                                                            <span class="badge bg-secondary">#<?php echo $order->id; ?></span>
+                                                                            <span class="text-muted" style="font-size: 0.8rem;"><?php echo date('H:i', strtotime($order->created_at)); ?></span>
+                                                                        </div>
+                                                                        <div class="d-flex justify-content-between align-items-end mt-3">
+                                                                            <div class="text-dark fw-medium"><?php echo htmlspecialchars($order->name); ?></div>
+                                                                            <div class="text-success fw-bold"><?php echo number_format($order->total_amount, 0, ',', '.'); ?> đ</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </a>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php else: ?>
+                                                <div class="text-muted text-center py-2">Không có chi tiết đơn hàng</div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

@@ -135,6 +135,29 @@ class OrderModel
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
+    public function getCompletedOrdersByDateRange($startDate = null, $endDate = null)
+    {
+        $query = "SELECT *, DATE(created_at) as date_only 
+                  FROM " . $this->table_name . " 
+                  WHERE status IN ('Đã giao hàng', 'Hoàn thành')";
+                  
+        if ($startDate && $endDate) {
+            $query .= " AND DATE(created_at) BETWEEN :start_date AND :end_date";
+        }
+        
+        $query .= " ORDER BY created_at DESC";
+                    
+        $stmt = $this->conn->prepare($query);
+        
+        if ($startDate && $endDate) {
+            $stmt->bindParam(':start_date', $startDate);
+            $stmt->bindParam(':end_date', $endDate);
+        }
+        
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
+
     public function updateReturnRequest($orderId, $productsJson, $reason)
     {
         $query = "UPDATE " . $this->table_name . " 
