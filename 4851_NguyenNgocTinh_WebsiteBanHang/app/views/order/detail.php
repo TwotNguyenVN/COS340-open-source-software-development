@@ -50,6 +50,22 @@ if ($currentStatusIndex === false) {
                         <i class="fa-solid fa-xmark me-2"></i>Hủy đơn hàng
                     </button>
                 </form>
+            <?php elseif ($order->status === 'Đã giao hàng'): ?>
+                <div class="d-flex gap-2 flex-wrap justify-content-md-end mt-2 mt-md-0">
+                    <form action="<?php echo BASE_URL; ?>/Order/completeOrder" method="POST" class="d-inline" id="complete-form-<?php echo $order->id; ?>">
+                        <input type="hidden" name="id" value="<?php echo $order->id; ?>">
+                        <button type="button" onclick="confirmComplete(<?php echo $order->id; ?>)" class="btn px-3 py-2 btn-complete-hover" style="border: 1px solid #30d158; color: #30d158; background: transparent; border-radius: 8px; transition: all 0.2s;">
+                            <i class="fa-solid fa-check me-2"></i>Đã nhận hàng
+                        </button>
+                    </form>
+                    <form action="<?php echo BASE_URL; ?>/Order/returnOrder" method="POST" class="d-inline" id="return-form-<?php echo $order->id; ?>">
+                        <input type="hidden" name="id" value="<?php echo $order->id; ?>">
+                        <input type="hidden" name="return_reason" id="return-reason-<?php echo $order->id; ?>" value="">
+                        <button type="button" onclick="confirmReturn(<?php echo $order->id; ?>)" class="btn px-3 py-2 btn-return-hover" style="border: 1px solid #ff9f0a; color: #ff9f0a; background: transparent; border-radius: 8px; transition: all 0.2s;">
+                            <i class="fa-solid fa-rotate-left me-2"></i>Hoàn trả
+                        </button>
+                    </form>
+                </div>
             <?php endif; ?>
         </div>
     </div>
@@ -64,36 +80,50 @@ if ($currentStatusIndex === false) {
     <h4 class="text-danger fw-bold">Đơn hàng đã bị hủy</h4>
     <p class="text-muted">Đơn hàng này đã được hủy và sẽ không được giao.</p>
 </div>
+<?php elseif ($order->status === 'Yêu cầu hoàn trả'): ?>
+<div class="glass-card mb-4 py-4 text-center">
+    <div class="text-warning mb-3">
+        <i class="fa-solid fa-rotate-left" style="font-size: 4rem;"></i>
+    </div>
+    <h4 class="text-warning fw-bold">Yêu cầu hoàn trả đang được xử lý</h4>
+    <p class="text-muted">Chúng tôi đã tiếp nhận yêu cầu hoàn trả của bạn và sẽ liên hệ sớm nhất.</p>
+    <?php if(!empty($order->notes) && strpos($order->notes, '[Hoàn trả]') !== false): ?>
+        <div class="mt-3 p-3 bg-light rounded text-start d-inline-block border">
+            <strong class="text-dark">Lý do hoàn trả:</strong><br>
+            <span class="text-muted"><?php echo htmlspecialchars(str_replace('[Hoàn trả] ', '', $order->notes), ENT_QUOTES, 'UTF-8'); ?></span>
+        </div>
+    <?php endif; ?>
+</div>
 <?php else: ?>
 <div class="glass-card mb-4 py-4">
     <h5 class="fw-semibold mb-4 text-center text-md-start"><i class="fa-solid fa-truck-ramp-box me-2 text-primary"></i>Trạng thái giao hàng</h5>
     <div class="timeline-container">
         <div class="timeline-line">
-            <div class="timeline-line-fill" style="width: <?php echo ($currentStatusIndex / 3) * 100; ?>%;"></div>
+            <div class="timeline-line-fill" style="width: <?php echo ($order->status === 'Hoàn thành' ? 100 : ($currentStatusIndex / 3) * 100); ?>%;"></div>
         </div>
         
-        <div class="timeline-step <?php echo $currentStatusIndex >= 0 ? 'active' : ''; ?>">
+        <div class="timeline-step <?php echo ($order->status === 'Hoàn thành' || $currentStatusIndex >= 0) ? 'active' : ''; ?>">
             <div class="timeline-icon">
                 <i class="fa-solid fa-file-invoice"></i>
             </div>
             <div class="timeline-label">Chờ xác nhận</div>
         </div>
         
-        <div class="timeline-step <?php echo $currentStatusIndex >= 1 ? 'active' : ''; ?>">
+        <div class="timeline-step <?php echo ($order->status === 'Hoàn thành' || $currentStatusIndex >= 1) ? 'active' : ''; ?>">
             <div class="timeline-icon">
                 <i class="fa-solid fa-box-open"></i>
             </div>
             <div class="timeline-label">Đang chuẩn bị hàng</div>
         </div>
         
-        <div class="timeline-step <?php echo $currentStatusIndex >= 2 ? 'active' : ''; ?>">
+        <div class="timeline-step <?php echo ($order->status === 'Hoàn thành' || $currentStatusIndex >= 2) ? 'active' : ''; ?>">
             <div class="timeline-icon">
                 <i class="fa-solid fa-truck"></i>
             </div>
             <div class="timeline-label">Đang giao hàng</div>
         </div>
         
-        <div class="timeline-step <?php echo $currentStatusIndex >= 3 ? 'active' : ''; ?>">
+        <div class="timeline-step <?php echo ($order->status === 'Hoàn thành' || $currentStatusIndex >= 3) ? 'active' : ''; ?>">
             <div class="timeline-icon">
                 <i class="fa-solid fa-circle-check"></i>
             </div>
@@ -135,6 +165,8 @@ if ($currentStatusIndex === false) {
                 elseif ($order->status === 'Đang giao hàng') $badgeClass = 'bg-primary';
                 elseif ($order->status === 'Đã giao hàng') $badgeClass = 'bg-success';
                 elseif ($order->status === 'Đã hủy') $badgeClass = 'bg-danger';
+                elseif ($order->status === 'Hoàn thành') $badgeClass = 'bg-success';
+                elseif ($order->status === 'Yêu cầu hoàn trả') $badgeClass = 'bg-warning text-dark';
                 ?>
                 <span class="badge <?php echo $badgeClass; ?> px-3 py-2 font-size-14" style="border-radius: 6px; font-weight: 500;">
                     <?php echo htmlspecialchars($order->status, ENT_QUOTES, 'UTF-8'); ?>
@@ -342,6 +374,14 @@ if ($currentStatusIndex === false) {
         background-color: #ff4d4f !important;
         color: white !important;
     }
+    .btn-complete-hover:hover {
+        background-color: #30d158 !important;
+        color: white !important;
+    }
+    .btn-return-hover:hover {
+        background-color: #ff9f0a !important;
+        color: white !important;
+    }
 </style>
 
 <script>
@@ -363,6 +403,58 @@ function confirmCancel(orderId) {
     }).then((result) => {
         if (result.isConfirmed) {
             document.getElementById('cancel-form-' + orderId).submit();
+        }
+    });
+}
+
+function confirmComplete(orderId) {
+    Swal.fire({
+        title: 'Đã nhận được hàng?',
+        text: "Bạn xác nhận đơn hàng đã được giao thành công và không có lỗi gì?",
+        icon: 'success',
+        showCancelButton: true,
+        confirmButtonColor: '#30d158',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fa-solid fa-check me-1"></i>Xác nhận',
+        cancelButtonText: 'Đóng',
+        customClass: {
+            confirmButton: 'btn btn-success px-4 py-2 me-2',
+            cancelButton: 'btn btn-secondary px-4 py-2'
+        },
+        buttonsStyling: false
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('complete-form-' + orderId).submit();
+        }
+    });
+}
+
+function confirmReturn(orderId) {
+    Swal.fire({
+        title: 'Yêu cầu hoàn trả?',
+        text: "Vui lòng nhập lý do hoàn trả (hàng lỗi, sai mẫu mã,...):",
+        input: 'textarea',
+        inputPlaceholder: 'Nhập lý do tại đây...',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ff9f0a',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fa-solid fa-rotate-left me-1"></i>Gửi yêu cầu',
+        cancelButtonText: 'Đóng',
+        customClass: {
+            confirmButton: 'btn btn-warning px-4 py-2 me-2',
+            cancelButton: 'btn btn-secondary px-4 py-2'
+        },
+        buttonsStyling: false,
+        inputValidator: (value) => {
+            if (!value) {
+                return 'Bạn cần nhập lý do hoàn trả!'
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('return-reason-' + orderId).value = result.value;
+            document.getElementById('return-form-' + orderId).submit();
         }
     });
 }
