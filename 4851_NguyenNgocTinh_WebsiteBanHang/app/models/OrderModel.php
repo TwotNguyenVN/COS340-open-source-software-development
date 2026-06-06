@@ -75,7 +75,7 @@ class OrderModel
     {
         $query = "SELECT DATE(created_at) as date, COUNT(id) as total_orders, SUM(total_amount) as daily_revenue 
                   FROM " . $this->table_name . " 
-                  WHERE status = 'Đã giao hàng'
+                  WHERE status IN ('Đã giao hàng', 'Hoàn thành')
                   GROUP BY DATE(created_at) 
                   ORDER BY date DESC";
         $stmt = $this->conn->prepare($query);
