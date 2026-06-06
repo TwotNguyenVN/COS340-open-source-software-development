@@ -27,9 +27,9 @@ if ($currentStatusIndex === false) {
             <p class="text-muted mb-0">Đặt ngày: <?php echo date('d/m/Y H:i:s', strtotime($order->created_at)); ?></p>
         </div>
         
-        <?php if (SessionHelper::isAdmin()): ?>
-            <div class="col-md-6 text-md-end mt-3 mt-md-0">
-                <?php if ($currentStatusIndex < count($statuses) - 1): ?>
+        <div class="col-md-6 text-md-end mt-3 mt-md-0">
+            <?php if (SessionHelper::isAdmin()): ?>
+                <?php if ($currentStatusIndex < count($statuses) - 1 && $order->status !== 'Đã hủy'): ?>
                     <form action="<?php echo BASE_URL; ?>/Order/updateStatus" method="POST" class="d-inline">
                         <input type="hidden" name="id" value="<?php echo $order->id; ?>">
                         <input type="hidden" name="csrf_token" value="<?php echo SessionHelper::getCSRFToken(); ?>">
@@ -38,17 +38,33 @@ if ($currentStatusIndex === false) {
                             <i class="fa-solid fa-arrow-right me-2"></i>Chuyển sang: <strong><?php echo htmlspecialchars($statuses[$currentStatusIndex + 1], ENT_QUOTES, 'UTF-8'); ?></strong>
                         </button>
                     </form>
-                <?php else: ?>
+                <?php elseif ($order->status === 'Đã giao hàng'): ?>
                     <span class="badge bg-success px-3 py-2" style="font-size: 14px; border-radius: 8px;">
                         <i class="fa-solid fa-check-double me-2"></i>Hoàn tất giao hàng
                     </span>
                 <?php endif; ?>
-            </div>
-        <?php endif; ?>
+            <?php elseif ($order->status === 'Chờ xác nhận'): ?>
+                <form action="<?php echo BASE_URL; ?>/Order/cancel" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?');">
+                    <input type="hidden" name="id" value="<?php echo $order->id; ?>">
+                    <button type="submit" class="btn btn-outline-danger px-4 py-2">
+                        <i class="fa-solid fa-xmark me-2"></i>Hủy đơn hàng
+                    </button>
+                </form>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 
 <!-- Order Timeline Progress -->
+<?php if ($order->status === 'Đã hủy'): ?>
+<div class="glass-card mb-4 py-4 text-center">
+    <div class="text-danger mb-3">
+        <i class="fa-solid fa-circle-xmark" style="font-size: 4rem;"></i>
+    </div>
+    <h4 class="text-danger fw-bold">Đơn hàng đã bị hủy</h4>
+    <p class="text-muted">Đơn hàng này đã được hủy và sẽ không được giao.</p>
+</div>
+<?php else: ?>
 <div class="glass-card mb-4 py-4">
     <h5 class="fw-semibold mb-4 text-center text-md-start"><i class="fa-solid fa-truck-ramp-box me-2 text-primary"></i>Trạng thái giao hàng</h5>
     <div class="timeline-container">
@@ -85,6 +101,7 @@ if ($currentStatusIndex === false) {
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <div class="row">
     <!-- Customer and Shipping info -->
@@ -117,6 +134,7 @@ if ($currentStatusIndex === false) {
                 elseif ($order->status === 'Đang chuẩn bị hàng') $badgeClass = 'bg-info text-dark';
                 elseif ($order->status === 'Đang giao hàng') $badgeClass = 'bg-primary';
                 elseif ($order->status === 'Đã giao hàng') $badgeClass = 'bg-success';
+                elseif ($order->status === 'Đã hủy') $badgeClass = 'bg-danger';
                 ?>
                 <span class="badge <?php echo $badgeClass; ?> px-3 py-2 font-size-14" style="border-radius: 6px; font-weight: 500;">
                     <?php echo htmlspecialchars($order->status, ENT_QUOTES, 'UTF-8'); ?>

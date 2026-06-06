@@ -63,6 +63,8 @@
                                     $badgeClass = 'bg-primary';
                                 } elseif ($order->status === 'Đã giao hàng') {
                                     $badgeClass = 'bg-success';
+                                } elseif ($order->status === 'Đã hủy') {
+                                    $badgeClass = 'bg-danger';
                                 }
                                 ?>
                                 <span class="badge <?php echo $badgeClass; ?>" style="font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 6px;">
@@ -73,6 +75,14 @@
                                 <a href="<?php echo BASE_URL; ?>/Order/show/<?php echo $order->id; ?>" class="btn btn-sm btn-glass-secondary py-1 px-3" title="Xem chi tiết">
                                     <i class="fa-solid fa-circle-info me-1"></i> Chi tiết
                                 </a>
+                                <?php if ($order->status === 'Chờ xác nhận'): ?>
+                                    <form action="<?php echo BASE_URL; ?>/Order/cancel" method="POST" class="d-inline ms-1" onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?');">
+                                        <input type="hidden" name="id" value="<?php echo $order->id; ?>">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-3" title="Hủy đơn hàng">
+                                            <i class="fa-solid fa-xmark me-1"></i> Hủy
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
