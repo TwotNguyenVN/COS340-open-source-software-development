@@ -20,7 +20,7 @@ Dự án sử dụng cơ sở dữ liệu có tên là `my_store`. Bạn cần t
 1. Mở công cụ quản lý cơ sở dữ liệu đi kèm với Laragon (như **HeidiSQL**) hoặc bất kỳ công cụ quản lý MySQL nào bạn đang sử dụng.
 2. Tạo mới một cơ sở dữ liệu có tên là `my_store` với bảng mã (Collation): `utf8mb4_unicode_ci` (hoặc `utf8mb4_general_ci`).
 3. Nạp (Import) tệp tin SQL mẫu nằm ở thư mục gốc của dự án:  
-   [database.sql](file:///c:/laragon/www/4851_NguyenNgocTinh_PTPM_MNM/4851_NguyenNgocTinh_WebsiteBanHang/database.sql) vào database `my_store` vừa tạo.
+   [database.sql](file:///c:/laragon/www/4851_NguyenNgocTinh_WebsiteBanHang/database.sql) vào database `my_store` vừa tạo.
 
 > [!TIP]  
 > Bạn cũng có thể thực thi nhanh bằng dòng lệnh trong PowerShell (chạy dưới quyền Admin nếu cần) để tự động tạo và nhập cơ sở dữ liệu:
@@ -54,7 +54,7 @@ Dự án sử dụng thư viện **Firebase PHP-JWT** để tạo và giải mã
 
 ## 4. Cấu hình Kết nối Cơ sở dữ liệu (Database Config) ⚙️
 Nếu môi trường MySQL trên Laragon của bạn sử dụng tài khoản khác hoặc có mật khẩu (mặc định của Laragon là User: `root`, Password: trống), vui lòng chỉnh sửa thông tin kết nối tương ứng tại file cấu hình:
-- [database.php](file:///c:/laragon/www/4851_NguyenNgocTinh_PTPM_MNM/4851_NguyenNgocTinh_WebsiteBanHang/app/config/database.php)
+- [database.php](file:///c:/laragon/www/4851_NguyenNgocTinh_WebsiteBanHang/app/config/database.php)
 ```php
 private $host = "localhost";
 private $db_name = "my_store";
