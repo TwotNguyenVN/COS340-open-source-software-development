@@ -101,11 +101,11 @@ class ProductController
 
         if ($result === false) {
             $_SESSION['error_msg'] = "Không thể xóa sản phẩm đã có trong lịch sử đơn hàng.";
+            header('Location: ' . BASE_URL . '/Product/show/' . $productId);
         } else {
             $_SESSION['success_msg'] = "Đã xóa sản phẩm thành công!";
+            header('Location: ' . BASE_URL . '/Product?sort_by=newest&page=1');
         }
-
-        header('Location: ' . BASE_URL . '/Product');
         exit();
     }
 
