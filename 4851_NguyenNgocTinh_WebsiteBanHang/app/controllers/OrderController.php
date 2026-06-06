@@ -96,7 +96,7 @@ class OrderController
             $orderId = isset($_POST['id']) ? (int)$_POST['id'] : 0;
             $status = trim($_POST['status'] ?? '');
 
-            $validStatuses = ['Chờ xác nhận', 'Đang chuẩn bị hàng', 'Đang giao hàng', 'Đã giao hàng'];
+            $validStatuses = ['Chờ xác nhận', 'Đang chuẩn bị hàng', 'Đang giao hàng', 'Đã giao hàng', 'Đã thu hồi'];
             if (!in_array($status, $validStatuses)) {
                 $_SESSION['error_msg'] = "Trạng thái đơn hàng không hợp lệ.";
                 header('Location: ' . BASE_URL . '/Order/show/' . $orderId);
@@ -111,14 +111,23 @@ class OrderController
                 exit();
             }
 
-            $currentIdx = array_search($currentOrder->status, $validStatuses);
-            $newIdx = array_search($status, $validStatuses);
+            if ($status === 'Đã thu hồi') {
+                if ($currentOrder->status !== 'Đã duyệt hoàn trả') {
+                    $_SESSION['error_msg'] = "Chỉ có thể thu hồi đơn hàng khi đã duyệt hoàn trả!";
+                    header('Location: ' . BASE_URL . '/Order/show/' . $orderId);
+                    exit();
+                }
+            } else {
+                $coreStatuses = ['Chờ xác nhận', 'Đang chuẩn bị hàng', 'Đang giao hàng', 'Đã giao hàng'];
+                $currentIdx = array_search($currentOrder->status, $coreStatuses);
+                $newIdx = array_search($status, $coreStatuses);
 
-            // Only allow advancing to next step, never going back
-            if ($newIdx !== $currentIdx + 1) {
-                $_SESSION['error_msg'] = "Chỉ được phép chuyển sang trạng thái tiếp theo, không thể quay về trạng thái trước!";
-                header('Location: ' . BASE_URL . '/Order/show/' . $orderId);
-                exit();
+                // Only allow advancing to next step, never going back
+                if ($currentIdx === false || $newIdx !== $currentIdx + 1) {
+                    $_SESSION['error_msg'] = "Chỉ được phép chuyển sang trạng thái tiếp theo, không thể quay về trạng thái trước!";
+                    header('Location: ' . BASE_URL . '/Order/show/' . $orderId);
+                    exit();
+                }
             }
 
             $result = $this->orderModel->updateOrderStatus($orderId, $status);
