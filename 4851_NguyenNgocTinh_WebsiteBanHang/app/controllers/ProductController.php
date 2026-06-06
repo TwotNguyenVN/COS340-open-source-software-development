@@ -90,7 +90,7 @@ class ProductController
 
         // CSRF validation
         $token = $_POST['csrf_token'] ?? '';
-        if (!SessionHelper::validateCSRFToken($token)) {
+        if (!SessionHelper::verifyCSRFToken($token)) {
             $_SESSION['error_msg'] = "Phiªn làm việc không hợp lệ. Vui lòng thử lại.";
             header('Location: ' . BASE_URL . '/Product');
             exit();
