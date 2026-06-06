@@ -61,5 +61,17 @@ class OrderModel
         $stmt->bindParam(':id', $orderId, PDO::PARAM_INT);
         return $stmt->execute();
     }
+
+    public function getRevenueByDate()
+    {
+        $query = "SELECT DATE(created_at) as date, COUNT(id) as total_orders, SUM(total_amount) as daily_revenue 
+                  FROM " . $this->table_name . " 
+                  WHERE status = 'Đã giao hàng'
+                  GROUP BY DATE(created_at) 
+                  ORDER BY date DESC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
 }
 ?>

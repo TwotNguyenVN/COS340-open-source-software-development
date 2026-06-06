@@ -129,5 +129,27 @@ class OrderController
             exit();
         }
     }
+
+    public function revenue()
+    {
+        $this->requireLogin();
+
+        if (!SessionHelper::isAdmin()) {
+            $_SESSION['error_msg'] = "Quyền truy cập bị từ chối. Chỉ Admin mới được thực hiện chức năng này.";
+            header('Location: ' . BASE_URL . '/Order');
+            exit();
+        }
+
+        $revenues = $this->orderModel->getRevenueByDate();
+        
+        $totalRevenue = 0;
+        $totalCompletedOrders = 0;
+        foreach ($revenues as $r) {
+            $totalRevenue += $r->daily_revenue;
+            $totalCompletedOrders += $r->total_orders;
+        }
+
+        include 'app/views/order/revenue.php';
+    }
 }
 ?>

@@ -17,7 +17,6 @@ class ProductController
         $this->categoryModel = new CategoryModel($this->db);
     }
 
-    // Trang chủ sản phẩm — PUBLIC (ai cũng xem được)
     public function index()
     {
         $categories = $this->categoryModel->getCategories();
@@ -28,6 +27,9 @@ class ProductController
         $min_price = null;
         $max_price = null;
         $sort_by = 'newest';
+
+        $totalProducts = $this->productModel->getTotalProducts();
+        $products = [];
 
         include 'app/views/product/list.php';
     }

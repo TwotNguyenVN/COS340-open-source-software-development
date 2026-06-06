@@ -847,8 +847,13 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link <?php echo is_active('/Order') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>/Order">
+                            <a class="nav-link <?php echo is_active('/Order') && !is_active('/Order/revenue') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>/Order">
                                 <i class="fa-solid fa-receipt me-1"></i>Quản lý đơn hàng
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link <?php echo is_active('/Order/revenue') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>/Order/revenue">
+                                <i class="fa-solid fa-chart-line me-1"></i>Doanh thu
                             </a>
                         </li>
                     <?php elseif ($isLoggedIn): ?>
