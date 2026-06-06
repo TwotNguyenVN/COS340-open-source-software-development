@@ -214,20 +214,68 @@ class OrderController
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
             $orderId = (int)$_POST['id'];
             $reason = isset($_POST['return_reason']) ? trim($_POST['return_reason']) : '';
+            $productIds = isset($_POST['return_products']) ? $_POST['return_products'] : [];
+            
             $order = $this->orderModel->getOrderById($orderId);
 
             if ($order && $order->account_id === $_SESSION['user_id'] && $order->status === 'Đã giao hàng') {
-                if ($this->orderModel->updateOrderStatus($orderId, 'Yêu cầu hoàn trả')) {
-                    if (!empty($reason)) {
-                        $newNotes = $order->notes ? $order->notes . "\n[Hoàn trả] " . $reason : "[Hoàn trả] " . $reason;
-                        $this->orderModel->updateOrderNotes($orderId, $newNotes);
+                if (empty($productIds) || empty($reason)) {
+                    $_SESSION['error_msg'] = "Vui lòng chọn sản phẩm và nhập lý do hoàn trả.";
+                } else {
+                    $productsJson = json_encode($productIds);
+                    if ($this->orderModel->updateReturnRequest($orderId, $productsJson, $reason)) {
+                        $_SESSION['success_msg'] = "Gửi yêu cầu hoàn trả thành công!";
+                    } else {
+                        $_SESSION['error_msg'] = "Có lỗi xảy ra, vui lòng thử lại.";
                     }
-                    $_SESSION['success_msg'] = "Gửi yêu cầu hoàn trả thành công!";
+                }
+            } else {
+                $_SESSION['error_msg'] = "Không thể hoàn trả đơn hàng này.";
+            }
+        }
+
+        $referer = $_SERVER['HTTP_REFERER'] ?? BASE_URL . '/Order';
+        header('Location: ' . $referer);
+        exit();
+    }
+
+    public function processReturn()
+    {
+        $this->requireLogin();
+
+        if (!SessionHelper::isAdmin()) {
+            $_SESSION['error_msg'] = "Quyền truy cập bị từ chối.";
+            header('Location: ' . BASE_URL . '/Order');
+            exit();
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
+            $orderId = (int)$_POST['id'];
+            $action = $_POST['action'] ?? '';
+            $adminReply = trim($_POST['admin_reply'] ?? '');
+
+            $order = $this->orderModel->getOrderById($orderId);
+
+            if ($order && $order->status === 'Yêu cầu hoàn trả') {
+                if ($action === 'approve') {
+                    $status = 'Đã duyệt hoàn trả';
+                    $msg = "Đã duyệt yêu cầu hoàn trả.";
+                } elseif ($action === 'reject') {
+                    $status = 'Từ chối hoàn trả';
+                    $msg = "Đã từ chối yêu cầu hoàn trả.";
+                } else {
+                    $_SESSION['error_msg'] = "Hành động không hợp lệ.";
+                    header('Location: ' . BASE_URL . '/Order/show/' . $orderId);
+                    exit();
+                }
+
+                if ($this->orderModel->processReturnRequest($orderId, $status, $adminReply)) {
+                    $_SESSION['success_msg'] = $msg;
                 } else {
                     $_SESSION['error_msg'] = "Có lỗi xảy ra, vui lòng thử lại.";
                 }
             } else {
-                $_SESSION['error_msg'] = "Không thể hoàn trả đơn hàng này.";
+                $_SESSION['error_msg'] = "Không thể xử lý yêu cầu hoàn trả này.";
             }
         }
 
