@@ -89,25 +89,39 @@
                                         <div class="p-3 bg-light" style="border-radius: 0 0 12px 12px; border-bottom: 1px solid rgba(0,0,0,0.05);">
                                             <?php if (!empty($dayOrders)): ?>
                                                 <h6 class="mb-3 text-muted text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">Các đơn hàng trong ngày</h6>
-                                                <div class="row g-3">
-                                                    <?php foreach ($dayOrders as $order): ?>
-                                                        <div class="col-md-6 col-lg-4">
-                                                            <a href="<?php echo BASE_URL; ?>/Order/show/<?php echo $order->id; ?>" class="text-decoration-none">
-                                                                <div class="card h-100 border-0 shadow-sm hover-lift" style="border-radius: 8px;">
-                                                                    <div class="card-body p-3">
-                                                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                                                            <span class="badge bg-secondary">#<?php echo $order->id; ?></span>
-                                                                            <span class="text-muted" style="font-size: 0.8rem;"><?php echo date('H:i', strtotime($order->created_at)); ?></span>
-                                                                        </div>
-                                                                        <div class="d-flex justify-content-between align-items-end mt-3">
-                                                                            <div class="text-dark fw-medium"><?php echo htmlspecialchars($order->name); ?></div>
-                                                                            <div class="text-success fw-bold"><?php echo number_format($order->total_amount, 0, ',', '.'); ?> đ</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </a>
-                                                        </div>
-                                                    <?php endforeach; ?>
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover table-sm table-borderless mb-0" style="background-color: transparent;">
+                                                        <thead style="border-bottom: 2px solid rgba(0,0,0,0.05);">
+                                                            <tr>
+                                                                <th class="text-muted fw-semibold" style="font-size: 0.85rem;">Mã ĐH</th>
+                                                                <th class="text-muted fw-semibold" style="font-size: 0.85rem;">Khách hàng</th>
+                                                                <th class="text-muted fw-semibold" style="font-size: 0.85rem;">Số điện thoại</th>
+                                                                <th class="text-muted fw-semibold" style="font-size: 0.85rem;">Tổng tiền</th>
+                                                                <th class="text-muted fw-semibold" style="font-size: 0.85rem;">Ngày đặt</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php foreach ($dayOrders as $order): ?>
+                                                                <tr style="cursor: pointer;" onclick="window.location='<?php echo BASE_URL; ?>/Order/show/<?php echo $order->id; ?>'">
+                                                                    <td class="align-middle">
+                                                                        <span class="badge bg-secondary">#<?php echo $order->id; ?></span>
+                                                                    </td>
+                                                                    <td class="align-middle fw-medium text-dark">
+                                                                        <?php echo htmlspecialchars($order->name); ?>
+                                                                    </td>
+                                                                    <td class="align-middle text-muted">
+                                                                        <?php echo htmlspecialchars($order->phone); ?>
+                                                                    </td>
+                                                                    <td class="align-middle text-success fw-bold">
+                                                                        <?php echo number_format($order->total_amount, 0, ',', '.'); ?> đ
+                                                                    </td>
+                                                                    <td class="align-middle text-muted">
+                                                                        <?php echo date('H:i - d/m/Y', strtotime($order->created_at)); ?>
+                                                                    </td>
+                                                                </tr>
+                                                            <?php endforeach; ?>
+                                                        </tbody>
+                                                    </table>
                                                 </div>
                                             <?php else: ?>
                                                 <div class="text-muted text-center py-2">Không có chi tiết đơn hàng</div>
