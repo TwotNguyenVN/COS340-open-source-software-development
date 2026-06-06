@@ -20,6 +20,46 @@ class OrderModel
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
+    public function searchOrders($filters)
+    {
+        $query = "SELECT o.*, a.username, a.fullname 
+                  FROM " . $this->table_name . " o 
+                  LEFT JOIN account a ON o.account_id = a.id 
+                  WHERE 1=1";
+        
+        $params = [];
+
+        if (!empty($filters['search'])) {
+            $query .= " AND (o.id LIKE :search OR o.name LIKE :search OR o.phone LIKE :search)";
+            $params[':search'] = '%' . $filters['search'] . '%';
+        }
+
+        if (!empty($filters['status']) && $filters['status'] !== 'Tất cả') {
+            $query .= " AND o.status = :status";
+            $params[':status'] = $filters['status'];
+        }
+
+        if (!empty($filters['start_date'])) {
+            $query .= " AND DATE(o.created_at) >= :start_date";
+            $params[':start_date'] = $filters['start_date'];
+        }
+
+        if (!empty($filters['end_date'])) {
+            $query .= " AND DATE(o.created_at) <= :end_date";
+            $params[':end_date'] = $filters['end_date'];
+        }
+
+        $query .= " ORDER BY o.id DESC";
+
+        $stmt = $this->conn->prepare($query);
+        foreach ($params as $key => $val) {
+            $stmt->bindValue($key, $val);
+        }
+        
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
+
     public function getOrdersByAccountId($accountId)
     {
         $query = "SELECT * FROM " . $this->table_name . " WHERE account_id = :account_id ORDER BY id DESC";

@@ -7,6 +7,63 @@
     </div>
 </div>
 
+<?php
+$search = $filters['search'] ?? '';
+$startDate = $filters['start_date'] ?? '';
+$endDate = $filters['end_date'] ?? '';
+$currentStatus = $filters['status'] ?? 'Tất cả';
+$allStatuses = ['Tất cả', 'Chờ xác nhận', 'Đang chuẩn bị hàng', 'Đang giao hàng', 'Đã giao hàng', 'Hoàn thành', 'Yêu cầu hoàn trả', 'Đã hủy'];
+?>
+
+<div class="glass-card mb-4 p-3">
+    <!-- Tabs for Status -->
+    <ul class="nav nav-pills mb-3 custom-tabs" id="pills-tab" role="tablist" style="overflow-x: auto; flex-wrap: nowrap; padding-bottom: 5px;">
+        <?php foreach ($allStatuses as $st): ?>
+            <li class="nav-item me-2" role="presentation">
+                <a href="?search=<?php echo urlencode($search); ?>&start_date=<?php echo urlencode($startDate); ?>&end_date=<?php echo urlencode($endDate); ?>&status=<?php echo urlencode($st); ?>" 
+                   class="nav-link <?php echo $currentStatus === $st ? 'active' : ''; ?>" 
+                   style="white-space: nowrap; border-radius: 20px;">
+                   <?php echo htmlspecialchars($st, ENT_QUOTES, 'UTF-8'); ?>
+                </a>
+            </li>
+        <?php endforeach; ?>
+    </ul>
+
+    <!-- Search Form -->
+    <form action="<?php echo BASE_URL; ?>/Order" method="GET" class="row g-3 align-items-end">
+        <input type="hidden" name="status" value="<?php echo htmlspecialchars($currentStatus, ENT_QUOTES, 'UTF-8'); ?>">
+        
+        <div class="col-md-4">
+            <label class="form-label text-muted small mb-1">Tìm kiếm</label>
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
+                <input type="text" class="form-control border-start-0" name="search" placeholder="Mã đơn, tên, SĐT..." value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>">
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <label class="form-label text-muted small mb-1">Từ ngày</label>
+            <input type="date" class="form-control" name="start_date" value="<?php echo htmlspecialchars($startDate, ENT_QUOTES, 'UTF-8'); ?>">
+        </div>
+        
+        <div class="col-md-3">
+            <label class="form-label text-muted small mb-1">Đến ngày</label>
+            <input type="date" class="form-control" name="end_date" value="<?php echo htmlspecialchars($endDate, ENT_QUOTES, 'UTF-8'); ?>">
+        </div>
+        
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary w-100" style="border-radius: 8px;">
+                <i class="fa-solid fa-filter me-1"></i> Lọc
+            </button>
+            <?php if (!empty($search) || !empty($startDate) || !empty($endDate) || $currentStatus !== 'Tất cả'): ?>
+                <a href="<?php echo BASE_URL; ?>/Order" class="btn btn-light" style="border-radius: 8px; border: 1px solid #ddd;" title="Xóa bộ lọc">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </a>
+            <?php endif; ?>
+        </div>
+    </form>
+</div>
+
 <div class="glass-card">
     <?php if (empty($orders)): ?>
         <div class="text-center py-5">
@@ -159,6 +216,17 @@
     .btn-next-status:hover {
         background: var(--accent-color, #0071e3);
         color: #fff;
+    }
+    
+    .custom-tabs::-webkit-scrollbar {
+        height: 4px;
+    }
+    .custom-tabs::-webkit-scrollbar-thumb {
+        background-color: rgba(0,0,0,0.1);
+        border-radius: 4px;
+    }
+    [data-theme="dark"] .custom-tabs::-webkit-scrollbar-thumb {
+        background-color: rgba(255,255,255,0.2);
     }
 </style>
 
