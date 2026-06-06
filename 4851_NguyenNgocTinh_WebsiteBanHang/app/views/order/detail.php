@@ -44,9 +44,9 @@ if ($currentStatusIndex === false) {
                     </span>
                 <?php endif; ?>
             <?php elseif ($order->status === 'Chờ xác nhận'): ?>
-                <form action="<?php echo BASE_URL; ?>/Order/cancel" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?');">
+                <form action="<?php echo BASE_URL; ?>/Order/cancel" method="POST" class="d-inline" id="cancel-form-<?php echo $order->id; ?>">
                     <input type="hidden" name="id" value="<?php echo $order->id; ?>">
-                    <button type="submit" class="btn btn-outline-danger px-4 py-2">
+                    <button type="button" onclick="confirmCancel(<?php echo $order->id; ?>)" class="btn px-4 py-2" style="border: 1px solid #ff4d4f; color: #ff4d4f; background: transparent; border-radius: 8px; transition: all 0.2s;">
                         <i class="fa-solid fa-xmark me-2"></i>Hủy đơn hàng
                     </button>
                 </form>
@@ -336,6 +336,36 @@ if ($currentStatusIndex === false) {
             margin-left: 15px;
         }
     }
+
+    /* Add hover effect for the cancel button */
+    button[onclick^="confirmCancel"]:hover {
+        background-color: #ff4d4f !important;
+        color: white !important;
+    }
 </style>
+
+<script>
+function confirmCancel(orderId) {
+    Swal.fire({
+        title: 'Hủy đơn hàng?',
+        text: "Bạn có chắc chắn muốn hủy đơn hàng này không? Thao tác này không thể hoàn tác.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ff4d4f',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fa-solid fa-check me-1"></i>Đồng ý hủy',
+        cancelButtonText: 'Đóng',
+        customClass: {
+            confirmButton: 'btn btn-danger px-4 py-2 me-2',
+            cancelButton: 'btn btn-secondary px-4 py-2'
+        },
+        buttonsStyling: false
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('cancel-form-' + orderId).submit();
+        }
+    });
+}
+</script>
 
 <?php include 'app/views/shares/footer.php'; ?>
