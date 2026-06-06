@@ -122,7 +122,7 @@ Nếu thông số MySQL của bạn khác với mặc định của Laragon (Use
 
 ### Bước 4: Khởi chạy và Trải nghiệm
 1. Truy cập trang web theo URL (Mặc định khi sử dụng Laragon Virtual Hosts):  
-   `http://4851-nguyenngoctinh-websitebanhang.test` hoặc `http://localhost/4851_NguyenNgocTinh_PTPM_MNM/4851_NguyenNgocTinh_WebsiteBanHang/Product`.
+   `http://4851-nguyenngoctinh-websitebanhang.test` hoặc `http://localhost:88/4851_NguyenNgocTinh_WebsiteBanHang/`.
 2. Hệ thống sẽ tự động chặn và đưa bạn đến màn hình Đăng nhập do cơ chế JWT bảo vệ REST API lấy danh sách sản phẩm.
 3. Đăng ký một tài khoản mới tại nút "Đăng ký ngay" hoặc đăng nhập trực tiếp bằng tài khoản mẫu:
    - **Tên đăng nhập**: `admin`

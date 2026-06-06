@@ -67,7 +67,7 @@ private $password = ""; // Điền mật khẩu MySQL của bạn nếu có
 ## 5. Truy cập & Trải nghiệm dự án 🚀
 Sau khi hoàn tất toàn bộ các bước thiết lập ở trên, bạn truy cập website thông qua trình duyệt web:
 
-- **Đường dẫn mặc định:** `http://localhost:88/4851_NguyenNgocTinh_PTPM_MNM/4851_NguyenNgocTinh_WebsiteBanHang/Product`
+- **Đường dẫn mặc định:** `http://localhost:88/4851_NguyenNgocTinh_WebsiteBanHang/`
 - **Thông tin tài khoản thử nghiệm:**
   
   | Tên đăng nhập (Username) | Mật khẩu (Password) | Vai trò (Role) | Chức năng kiểm thử |
