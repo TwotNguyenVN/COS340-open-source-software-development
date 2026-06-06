@@ -72,6 +72,43 @@ class ProductController
         include 'app/views/product/edit.php';
     }
 
+    // Xóa sản phẩm — YÊU CẦU QUYỀN ADMIN
+    public function delete($id)
+    {
+        if (!SessionHelper::isAdmin()) {
+            $_SESSION['error_msg'] = "Quyền truy cập bị từ chối. Chỉ Admin mới được thực hiện chức năng này.";
+            header('Location: ' . BASE_URL . '/Product');
+            exit();
+        }
+
+        // Require POST method to prevent accidental deletion via GET links
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $_SESSION['error_msg'] = "Yêu cầu không hợp lệ.";
+            header('Location: ' . BASE_URL . '/Product');
+            exit();
+        }
+
+        // CSRF validation
+        $token = $_POST['csrf_token'] ?? '';
+        if (!SessionHelper::validateCSRFToken($token)) {
+            $_SESSION['error_msg'] = "Phiªn làm việc không hợp lệ. Vui lòng thử lại.";
+            header('Location: ' . BASE_URL . '/Product');
+            exit();
+        }
+
+        $productId = (int)$id;
+        $result = $this->productModel->deleteProduct($productId);
+
+        if ($result === false) {
+            $_SESSION['error_msg'] = "Không thể xóa sản phẩm đã có trong lịch sử đơn hàng.";
+        } else {
+            $_SESSION['success_msg'] = "Đã xóa sản phẩm thành công!";
+        }
+
+        header('Location: ' . BASE_URL . '/Product');
+        exit();
+    }
+
     private function uploadImage($file)
     {
         $target_dir = "public/uploads/";
