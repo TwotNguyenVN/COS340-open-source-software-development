@@ -436,20 +436,20 @@ class ProductController
                 exit();
             }
 
-            if (!preg_match('/^[\p{L}\s]{2,50}$/u', $name)) {
-                $_SESSION['error_msg'] = "Họ và tên không hợp lệ. Chỉ chấp nhận chữ cái và từ 2-50 ký tự.";
+            if (!preg_match('/^[\p{L}\s]{5,50}$/u', $name)) {
+                $_SESSION['error_msg'] = "Họ và tên không hợp lệ. Tên phải là ký tự chữ và tối thiểu 5 ký tự.";
                 header('Location: ' . BASE_URL . '/Product/checkout');
                 exit();
             }
 
-            if (!preg_match('/^(03|05|07|08|09)\d{8}$/', $phone)) {
-                $_SESSION['error_msg'] = "Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 số đầu số Việt Nam.";
+            if (!preg_match('/^0\d{9}$/', $phone)) {
+                $_SESSION['error_msg'] = "Số điện thoại sai. Phải bắt đầu bằng số 0, không có chữ và đủ 10 số.";
                 header('Location: ' . BASE_URL . '/Product/checkout');
                 exit();
             }
 
-            if (mb_strlen($address, 'UTF-8') < 10 || mb_strlen($address, 'UTF-8') > 255) {
-                $_SESSION['error_msg'] = "Địa chỉ phải dài từ 10 đến 255 ký tự.";
+            if (!preg_match('/^\d+/', $address) || mb_strlen($address, 'UTF-8') < 10 || mb_strlen($address, 'UTF-8') > 255) {
+                $_SESSION['error_msg'] = "Địa chỉ sai định dạng. Phải bắt đầu bằng số và tối thiểu 10 ký tự.";
                 header('Location: ' . BASE_URL . '/Product/checkout');
                 exit();
             }
