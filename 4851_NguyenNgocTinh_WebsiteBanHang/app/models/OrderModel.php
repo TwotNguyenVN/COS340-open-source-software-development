@@ -122,5 +122,29 @@ class OrderModel
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
+
+    public function updateReturnRequest($orderId, $productsJson, $reason)
+    {
+        $query = "UPDATE " . $this->table_name . " 
+                  SET status = 'Yêu cầu hoàn trả', return_products = :products, return_reason = :reason 
+                  WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':products', $productsJson, PDO::PARAM_STR);
+        $stmt->bindParam(':reason', $reason, PDO::PARAM_STR);
+        $stmt->bindParam(':id', $orderId, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
+    public function processReturnRequest($orderId, $status, $adminReply)
+    {
+        $query = "UPDATE " . $this->table_name . " 
+                  SET status = :status, return_admin_reply = :reply 
+                  WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':status', $status, PDO::PARAM_STR);
+        $stmt->bindParam(':reply', $adminReply, PDO::PARAM_STR);
+        $stmt->bindParam(':id', $orderId, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
 }
 ?>

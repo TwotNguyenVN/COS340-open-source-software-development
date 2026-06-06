@@ -86,13 +86,9 @@
                                                 <i class="fa-solid fa-check me-1"></i> Đã nhận
                                             </button>
                                         </form>
-                                        <form action="<?php echo BASE_URL; ?>/Order/returnOrder" method="POST" class="w-100 m-0 mt-1" id="return-form-<?php echo $order->id; ?>">
-                                            <input type="hidden" name="id" value="<?php echo $order->id; ?>">
-                                            <input type="hidden" name="return_reason" id="return-reason-<?php echo $order->id; ?>" value="">
-                                            <button type="button" onclick="confirmReturn(<?php echo $order->id; ?>)" class="btn btn-sm py-1 px-3 w-100 btn-return-hover" title="Yêu cầu hoàn trả" style="border: 1px solid #ff9f0a; color: #ff9f0a; background: transparent; border-radius: 20px; transition: all 0.2s;">
-                                                <i class="fa-solid fa-rotate-left me-1"></i> Hoàn trả
-                                            </button>
-                                        </form>
+                                        <a href="<?php echo BASE_URL; ?>/Order/show/<?php echo $order->id; ?>#return" class="btn btn-sm py-1 px-3 w-100 btn-return-hover mt-1" title="Yêu cầu hoàn trả" style="border: 1px solid #ff9f0a; color: #ff9f0a; background: transparent; border-radius: 20px; transition: all 0.2s;">
+                                            <i class="fa-solid fa-rotate-left me-1"></i> Hoàn trả
+                                        </a>
                                     <?php endif; ?>
                                 </div>
                             </td>
@@ -145,36 +141,6 @@ function confirmComplete(orderId) {
     }).then((result) => {
         if (result.isConfirmed) {
             document.getElementById('complete-form-' + orderId).submit();
-        }
-    });
-}
-
-function confirmReturn(orderId) {
-    Swal.fire({
-        title: 'Yêu cầu hoàn trả?',
-        text: "Vui lòng nhập lý do hoàn trả (hàng lỗi, sai mẫu mã,...):",
-        input: 'textarea',
-        inputPlaceholder: 'Nhập lý do tại đây...',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ff9f0a',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="fa-solid fa-rotate-left me-1"></i>Gửi yêu cầu',
-        cancelButtonText: 'Đóng',
-        customClass: {
-            confirmButton: 'btn btn-warning px-4 py-2 me-2',
-            cancelButton: 'btn btn-secondary px-4 py-2'
-        },
-        buttonsStyling: false,
-        inputValidator: (value) => {
-            if (!value) {
-                return 'Bạn cần nhập lý do hoàn trả!'
-            }
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            document.getElementById('return-reason-' + orderId).value = result.value;
-            document.getElementById('return-form-' + orderId).submit();
         }
     });
 }

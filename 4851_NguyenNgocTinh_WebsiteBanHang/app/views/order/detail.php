@@ -58,13 +58,9 @@ if ($currentStatusIndex === false) {
                             <i class="fa-solid fa-check me-2"></i>Đã nhận hàng
                         </button>
                     </form>
-                    <form action="<?php echo BASE_URL; ?>/Order/returnOrder" method="POST" class="d-inline" id="return-form-<?php echo $order->id; ?>">
-                        <input type="hidden" name="id" value="<?php echo $order->id; ?>">
-                        <input type="hidden" name="return_reason" id="return-reason-<?php echo $order->id; ?>" value="">
-                        <button type="button" onclick="confirmReturn(<?php echo $order->id; ?>)" class="btn px-3 py-2 btn-return-hover" style="border: 1px solid #ff9f0a; color: #ff9f0a; background: transparent; border-radius: 8px; transition: all 0.2s;">
-                            <i class="fa-solid fa-rotate-left me-2"></i>Hoàn trả
-                        </button>
-                    </form>
+                    <button type="button" class="btn px-3 py-2 btn-return-hover" data-bs-toggle="modal" data-bs-target="#returnModal" style="border: 1px solid #ff9f0a; color: #ff9f0a; background: transparent; border-radius: 8px; transition: all 0.2s;">
+                        <i class="fa-solid fa-rotate-left me-2"></i>Hoàn trả
+                    </button>
                 </div>
             <?php endif; ?>
         </div>
@@ -80,19 +76,69 @@ if ($currentStatusIndex === false) {
     <h4 class="text-danger fw-bold">Đơn hàng đã bị hủy</h4>
     <p class="text-muted">Đơn hàng này đã được hủy và sẽ không được giao.</p>
 </div>
-<?php elseif ($order->status === 'Yêu cầu hoàn trả'): ?>
-<div class="glass-card mb-4 py-4 text-center">
-    <div class="text-warning mb-3">
-        <i class="fa-solid fa-rotate-left" style="font-size: 4rem;"></i>
-    </div>
-    <h4 class="text-warning fw-bold">Yêu cầu hoàn trả đang được xử lý</h4>
-    <p class="text-muted">Chúng tôi đã tiếp nhận yêu cầu hoàn trả của bạn và sẽ liên hệ sớm nhất.</p>
-    <?php if(!empty($order->notes) && strpos($order->notes, '[Hoàn trả]') !== false): ?>
-        <div class="mt-3 p-3 bg-light rounded text-start d-inline-block border">
-            <strong class="text-dark">Lý do hoàn trả:</strong><br>
-            <span class="text-muted"><?php echo htmlspecialchars(str_replace('[Hoàn trả] ', '', $order->notes), ENT_QUOTES, 'UTF-8'); ?></span>
+<?php elseif ($order->status === 'Yêu cầu hoàn trả' || $order->status === 'Đã duyệt hoàn trả' || $order->status === 'Từ chối hoàn trả'): ?>
+<div class="glass-card mb-4 p-4" style="border-left: 4px solid <?php echo $order->status === 'Từ chối hoàn trả' ? '#ff4d4f' : ($order->status === 'Đã duyệt hoàn trả' ? '#30d158' : '#ff9f0a'); ?>;">
+    <div class="d-flex align-items-start">
+        <div class="me-3 mt-1">
+            <?php if ($order->status === 'Đã duyệt hoàn trả'): ?>
+                <i class="fa-solid fa-check-circle text-success" style="font-size: 2.5rem;"></i>
+            <?php elseif ($order->status === 'Từ chối hoàn trả'): ?>
+                <i class="fa-solid fa-times-circle text-danger" style="font-size: 2.5rem;"></i>
+            <?php else: ?>
+                <i class="fa-solid fa-rotate-left text-warning" style="font-size: 2.5rem;"></i>
+            <?php endif; ?>
         </div>
-    <?php endif; ?>
+        <div class="flex-grow-1">
+            <h4 class="fw-bold <?php echo $order->status === 'Từ chối hoàn trả' ? 'text-danger' : ($order->status === 'Đã duyệt hoàn trả' ? 'text-success' : 'text-warning'); ?>">
+                <?php echo $order->status; ?>
+            </h4>
+            
+            <div class="mt-3 p-3 bg-light rounded text-start border">
+                <strong class="text-dark">Lý do của khách hàng:</strong><br>
+                <span class="text-muted"><?php echo nl2br(htmlspecialchars($order->return_reason ?? '', ENT_QUOTES, 'UTF-8')); ?></span>
+                
+                <?php 
+                $returnedProducts = json_decode($order->return_products ?? '[]', true);
+                if (!empty($returnedProducts) && is_array($returnedProducts)): 
+                ?>
+                <div class="mt-2 pt-2 border-top">
+                    <strong class="text-dark">Sản phẩm yêu cầu hoàn:</strong>
+                    <ul class="mb-0 text-muted ps-3">
+                        <?php foreach ($details as $d): 
+                            if (in_array($d->product_id, $returnedProducts)): ?>
+                            <li><?php echo htmlspecialchars($d->product_name, ENT_QUOTES, 'UTF-8'); ?></li>
+                        <?php endif; endforeach; ?>
+                    </ul>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <?php if (!empty($order->return_admin_reply)): ?>
+                <div class="mt-3 p-3 rounded text-start border <?php echo $order->status === 'Từ chối hoàn trả' ? 'bg-danger text-white border-danger' : 'bg-success text-white border-success'; ?>" style="--bs-bg-opacity: .1;">
+                    <strong class="<?php echo $order->status === 'Từ chối hoàn trả' ? 'text-danger' : 'text-success'; ?>">Phản hồi từ Admin:</strong><br>
+                    <span class="<?php echo $order->status === 'Từ chối hoàn trả' ? 'text-danger' : 'text-success'; ?>"><?php echo nl2br(htmlspecialchars($order->return_admin_reply, ENT_QUOTES, 'UTF-8')); ?></span>
+                </div>
+            <?php endif; ?>
+
+            <?php if (SessionHelper::isAdmin() && $order->status === 'Yêu cầu hoàn trả'): ?>
+                <form action="<?php echo BASE_URL; ?>/Order/processReturn" method="POST" class="mt-4">
+                    <input type="hidden" name="id" value="<?php echo $order->id; ?>">
+                    <div class="mb-3">
+                        <label class="fw-semibold mb-1">Nhập phản hồi (Lý do từ chối hoặc Hẹn ngày lấy hàng) <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="admin_reply" rows="3" required placeholder="Ghi chú lại phản hồi của bạn..."></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="action" value="approve" class="btn btn-success px-4 py-2 fw-semibold">
+                            <i class="fa-solid fa-check me-2"></i>Duyệt hoàn trả
+                        </button>
+                        <button type="submit" name="action" value="reject" class="btn btn-danger px-4 py-2 fw-semibold">
+                            <i class="fa-solid fa-xmark me-2"></i>Từ chối hoàn trả
+                        </button>
+                    </div>
+                </form>
+            <?php endif; ?>
+        </div>
+    </div>
 </div>
 <?php else: ?>
 <div class="glass-card mb-4 py-4">
@@ -167,6 +213,8 @@ if ($currentStatusIndex === false) {
                 elseif ($order->status === 'Đã hủy') $badgeClass = 'bg-danger';
                 elseif ($order->status === 'Hoàn thành') $badgeClass = 'bg-success';
                 elseif ($order->status === 'Yêu cầu hoàn trả') $badgeClass = 'bg-warning text-dark';
+                elseif ($order->status === 'Đã duyệt hoàn trả') $badgeClass = 'bg-success';
+                elseif ($order->status === 'Từ chối hoàn trả') $badgeClass = 'bg-danger';
                 ?>
                 <span class="badge <?php echo $badgeClass; ?> px-3 py-2 font-size-14" style="border-radius: 6px; font-weight: 500;">
                     <?php echo htmlspecialchars($order->status, ENT_QUOTES, 'UTF-8'); ?>
@@ -243,6 +291,62 @@ if ($currentStatusIndex === false) {
         </div>
     </div>
 </div>
+
+<?php if ($order->status === 'Đã giao hàng' && !SessionHelper::isAdmin()): ?>
+<!-- Return Request Modal -->
+<div class="modal fade" id="returnModal" tabindex="-1" aria-labelledby="returnModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border-radius: 12px; border: none;">
+            <div class="modal-header" style="background-color: rgba(255,159,10,0.1); border-bottom: 1px solid rgba(255,159,10,0.2);">
+                <h5 class="modal-title text-warning fw-bold" id="returnModalLabel"><i class="fa-solid fa-rotate-left me-2"></i>Yêu cầu hoàn trả</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="<?php echo BASE_URL; ?>/Order/returnOrder" method="POST">
+                <div class="modal-body p-4">
+                    <input type="hidden" name="id" value="<?php echo $order->id; ?>">
+                    
+                    <p class="text-muted mb-3">Vui lòng chọn các sản phẩm bạn muốn hoàn trả và cung cấp lý do chi tiết.</p>
+                    
+                    <div class="mb-4">
+                        <label class="fw-semibold mb-2">Sản phẩm cần hoàn trả <span class="text-danger">*</span></label>
+                        <div class="table-responsive border rounded">
+                            <table class="table align-middle mb-0">
+                                <tbody>
+                                    <?php foreach ($details as $item): ?>
+                                    <tr>
+                                        <td class="text-center" style="width: 50px;">
+                                            <input class="form-check-input" type="checkbox" name="return_products[]" value="<?php echo $item->product_id; ?>" style="width: 20px; height: 20px; cursor: pointer;">
+                                        </td>
+                                        <td style="width: 60px;">
+                                            <?php if (!empty($item->product_image) && file_exists($item->product_image)): ?>
+                                                <img src="<?php echo BASE_URL . '/' . $item->product_image; ?>" alt="img" class="img-fluid rounded" style="width: 40px; height: 40px; object-fit: cover;">
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold"><?php echo htmlspecialchars($item->product_name, ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <small class="text-muted">SL: <?php echo $item->quantity; ?> | Giá: <?php echo number_format($item->price, 0, ',', '.'); ?>đ</small>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="return_reason" class="fw-semibold mb-2">Lý do hoàn trả <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="return_reason" id="return_reason" rows="4" placeholder="Ví dụ: Sản phẩm bị lỗi kỹ thuật, giao sai màu..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid var(--glass-border);">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-warning text-white fw-semibold px-4">Gửi yêu cầu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <style>
     /* Status pill badges */
@@ -425,36 +529,6 @@ function confirmComplete(orderId) {
     }).then((result) => {
         if (result.isConfirmed) {
             document.getElementById('complete-form-' + orderId).submit();
-        }
-    });
-}
-
-function confirmReturn(orderId) {
-    Swal.fire({
-        title: 'Yêu cầu hoàn trả?',
-        text: "Vui lòng nhập lý do hoàn trả (hàng lỗi, sai mẫu mã,...):",
-        input: 'textarea',
-        inputPlaceholder: 'Nhập lý do tại đây...',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ff9f0a',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="fa-solid fa-rotate-left me-1"></i>Gửi yêu cầu',
-        cancelButtonText: 'Đóng',
-        customClass: {
-            confirmButton: 'btn btn-warning px-4 py-2 me-2',
-            cancelButton: 'btn btn-secondary px-4 py-2'
-        },
-        buttonsStyling: false,
-        inputValidator: (value) => {
-            if (!value) {
-                return 'Bạn cần nhập lý do hoàn trả!'
-            }
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            document.getElementById('return-reason-' + orderId).value = result.value;
-            document.getElementById('return-form-' + orderId).submit();
         }
     });
 }
