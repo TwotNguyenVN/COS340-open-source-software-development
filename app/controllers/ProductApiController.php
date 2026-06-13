@@ -102,7 +102,14 @@ class ProductApiController
         // Hỗ trợ cả JSON và FormData
         $contentType = isset($_SERVER["CONTENT_TYPE"]) ? trim($_SERVER["CONTENT_TYPE"]) : '';
         if (strpos($contentType, 'application/json') !== false) {
-            $data = json_decode(file_get_contents("php://input"), true);
+            $raw_input = file_get_contents("php://input");
+            $data = json_decode($raw_input, true);
+            
+            if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
+                http_response_code(400);
+                echo json_encode(['message' => 'Định dạng JSON không hợp lệ (Syntax Error). Vui lòng kiểm tra lại Body request.']);
+                return;
+            }
         } else {
             $data = $_POST;
         }
@@ -110,6 +117,7 @@ class ProductApiController
         $name = $data['name'] ?? '';
         $description = $data['description'] ?? '';
         $price = $data['price'] ?? '';
+        $sale_price = $data['sale_price'] ?? null;
         $category_id = $data['category_id'] ?? null;
         $stock = isset($data['stock']) ? (int)$data['stock'] : 0;
         
@@ -125,20 +133,27 @@ class ProductApiController
             $image = $data['image'];
         }
 
+        if ($sale_price !== null && $sale_price !== '' && (float)$sale_price > (float)$price) {
+            $errors['sale_price'] = 'Giá khuyến mãi không được lớn hơn giá gốc';
+        }
+
         if (count($errors) > 0) {
             http_response_code(400);
             echo json_encode(['errors' => $errors]);
             return;
         }
 
-        $result = $this->productModel->addProduct($name, $description, $price, $category_id, $image, $stock);
+        $result = $this->productModel->addProduct($name, $description, $price, $category_id, $image, $stock, $sale_price);
 
         if (is_array($result)) {
             http_response_code(400);
             echo json_encode(['errors' => $result]);
-        } else {
+        } elseif ($result !== false) {
             http_response_code(201);
-            echo json_encode(['message' => 'Product created successfully']);
+            echo json_encode(['message' => 'Product created successfully', 'id' => $result]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['message' => 'Lỗi máy chủ']);
         }
     }
 
@@ -166,7 +181,14 @@ class ProductApiController
         // To make it easy, we will check $_POST first.
         $contentType = isset($_SERVER["CONTENT_TYPE"]) ? trim($_SERVER["CONTENT_TYPE"]) : '';
         if (strpos($contentType, 'application/json') !== false) {
-            $data = json_decode(file_get_contents("php://input"), true);
+            $raw_input = file_get_contents("php://input");
+            $data = json_decode($raw_input, true);
+            
+            if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
+                http_response_code(400);
+                echo json_encode(['message' => 'Định dạng JSON không hợp lệ (Syntax Error). Vui lòng kiểm tra lại Body request.']);
+                return;
+            }
         } else {
             // PHP doesnt parse multipart/form-data for PUT requests out of the box
             // So we handle it via _POST if they used POST method with _method=PUT hack

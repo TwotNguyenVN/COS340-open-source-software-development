@@ -127,7 +127,7 @@ class ProductModel
         return $result;
     }
 
-    public function addProduct($name, $description, $price, $category_id, $image = "", $stock = 0)
+    public function addProduct($name, $description, $price, $category_id, $image = "", $stock = 0, $sale_price = null)
     {
         $errors = [];
         if (empty($name)) {
@@ -139,6 +139,9 @@ class ProductModel
         if (!is_numeric($price) || $price < 0) {
             $errors['price'] = 'Giá sản phẩm không hợp lệ';
         }
+        if ($sale_price !== null && $sale_price !== '' && (!is_numeric($sale_price) || $sale_price < 0)) {
+            $errors['sale_price'] = 'Giá khuyến mãi không hợp lệ';
+        }
         if ($stock < 0) {
             $errors['stock'] = 'Số lượng sản phẩm không được là số âm';
         }
@@ -149,13 +152,14 @@ class ProductModel
             return $errors;
         }
 
-        $query = "INSERT INTO " . $this->table_name . " (name, description, price, category_id, image, stock) 
-                  VALUES (:name, :description, :price, :category_id, :image, :stock)";
+        $query = "INSERT INTO " . $this->table_name . " (name, description, price, sale_price, category_id, image, stock) 
+                  VALUES (:name, :description, :price, :sale_price, :category_id, :image, :stock)";
         $stmt = $this->conn->prepare($query);
 
         $name = htmlspecialchars(strip_tags($name));
         $description = htmlspecialchars(strip_tags($description));
         $price = htmlspecialchars(strip_tags($price));
+        $sale_price = $sale_price !== null && $sale_price !== '' ? htmlspecialchars(strip_tags($sale_price)) : null;
         $category_id = htmlspecialchars(strip_tags($category_id));
         $image = htmlspecialchars(strip_tags($image));
         $stock = (int)$stock;
@@ -163,12 +167,13 @@ class ProductModel
         $stmt->bindParam(':name', $name);
         $stmt->bindParam(':description', $description);
         $stmt->bindParam(':price', $price);
+        $stmt->bindParam(':sale_price', $sale_price);
         $stmt->bindParam(':category_id', $category_id);
         $stmt->bindParam(':image', $image);
         $stmt->bindParam(':stock', $stock, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
-            return true;
+            return $this->conn->lastInsertId();
         }
         return false;
     }

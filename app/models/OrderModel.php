@@ -181,5 +181,76 @@ class OrderModel
         $stmt->bindParam(':id', $orderId, PDO::PARAM_INT);
         return $stmt->execute();
     }
+
+    public function createOrderWithDetails($accountId, $orderData, $productsArray, $productModel)
+    {
+        try {
+            $this->conn->beginTransaction();
+
+            $totalAmount = 0;
+            // 1. Kiểm tra tồn kho và tính tổng tiền
+            foreach ($productsArray as &$item) {
+                $product = $productModel->getProductById($item['product_id']);
+                if (!$product) {
+                    throw new Exception("Sản phẩm có ID " . $item['product_id'] . " không tồn tại.");
+                }
+                if ($item['quantity'] <= 0) {
+                    throw new Exception("Số lượng sản phẩm không hợp lệ.");
+                }
+                if ($product->stock < $item['quantity']) {
+                    throw new Exception("Sản phẩm '" . $product->name . "' chỉ còn " . $product->stock . " trong kho.");
+                }
+                // Tính giá (lấy giá khuyến mãi nếu có)
+                $price = $product->sale_price !== null ? $product->sale_price : $product->price;
+                $item['price'] = $price;
+                $totalAmount += $price * $item['quantity'];
+            }
+
+            // Tính phí ship giả định (như code cũ: >= 50tr thì free ship, còn lại 100k)
+            $shipping_fee = $totalAmount >= 50000000 ? 0 : 100000;
+            $totalAmount += $shipping_fee;
+
+            // 2. Insert vào bảng orders
+            $query = "INSERT INTO " . $this->table_name . " 
+                      (account_id, name, phone, address, total_amount, status) 
+                      VALUES (:account_id, :name, :phone, :address, :total_amount, 'Chờ xác nhận')";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':account_id', $accountId);
+            $stmt->bindParam(':name', $orderData['shipping_name']);
+            $stmt->bindParam(':phone', $orderData['shipping_phone']);
+            $stmt->bindParam(':address', $orderData['shipping_address']);
+            $stmt->bindParam(':total_amount', $totalAmount);
+            $stmt->execute();
+
+            $orderId = $this->conn->lastInsertId();
+
+            // 3. Insert vào order_details và cập nhật stock
+            foreach ($productsArray as $item) {
+                // Insert detail
+                $qDetail = "INSERT INTO order_details (order_id, product_id, quantity, price) 
+                            VALUES (:order_id, :product_id, :quantity, :price)";
+                $stmtDetail = $this->conn->prepare($qDetail);
+                $stmtDetail->bindParam(':order_id', $orderId);
+                $stmtDetail->bindParam(':product_id', $item['product_id']);
+                $stmtDetail->bindParam(':quantity', $item['quantity']);
+                $stmtDetail->bindParam(':price', $item['price']);
+                $stmtDetail->execute();
+
+                // Update stock
+                $qStock = "UPDATE product SET stock = stock - :quantity WHERE id = :product_id";
+                $stmtStock = $this->conn->prepare($qStock);
+                $stmtStock->bindParam(':quantity', $item['quantity']);
+                $stmtStock->bindParam(':product_id', $item['product_id']);
+                $stmtStock->execute();
+            }
+
+            $this->conn->commit();
+            return ['success' => true, 'order_id' => $orderId];
+
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
 }
 ?>
