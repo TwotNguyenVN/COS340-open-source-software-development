@@ -150,6 +150,10 @@ Khi bạn thêm sản phẩm hoặc thay đổi cấu trúc bảng trên giao di
 | **PUT** | `/api/product/{id}` | Cập nhật thông tin sản phẩm theo ID | Công khai (Public) |
 | **DELETE**| `/api/product/{id}` | Xóa bỏ sản phẩm khỏi CSDL theo ID | Công khai (Public) |
 | **GET** | `/api/category` | Lấy danh sách danh mục (categories) | Công khai (Public) |
+| **GET** | `/api/order` | Lấy danh sách đơn hàng (Admin lấy tất cả, User lấy của mình) | 🔑 **Bảo mật (JWT Required)** |
+| **GET** | `/api/order/{id}` | Lấy chi tiết đơn hàng theo ID | 🔑 **Bảo mật (JWT Required)** |
+| **POST** | `/api/order` | Tạo đơn hàng mới | 🔑 **Bảo mật (JWT Required)** |
+| **PUT** | `/api/order/{id}` | Cập nhật trạng thái đơn hàng | 🔑 **Bảo mật (JWT Admin Only)** |
 
 ---
 *Chúc bạn có những trải nghiệm tuyệt vời khi học tập và phát triển cùng **NTECH STORE**!* 🚀💻✨

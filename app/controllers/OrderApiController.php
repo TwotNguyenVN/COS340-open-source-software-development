@@ -43,6 +43,21 @@ class OrderApiController
         return $decoded;
     }
 
+    // GET /api/order
+    public function index()
+    {
+        header('Content-Type: application/json');
+        $user = $this->authenticate();
+
+        if ($user['role'] === 'admin') {
+            $orders = $this->orderModel->getAllOrders();
+        } else {
+            $orders = $this->orderModel->getOrdersByAccountId($user['id']);
+        }
+
+        echo json_encode($orders);
+    }
+
     // GET /api/order/1
     public function show($id)
     {
