@@ -24,7 +24,8 @@ function makeRequest($method, $url, $data = null, $token = null) {
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     
-    return ['code' => $httpCode, 'body' => json_decode($response, true) ?: $response];
+    $decoded = json_decode($response, true);
+    return ['code' => $httpCode, 'body' => $decoded !== null ? $decoded : $response];
 }
 
 echo "BẮT ĐẦU TEST TOÀN BỘ API THEO POSTMAN...\n";
@@ -34,6 +35,7 @@ echo "----------------------------------------\n";
 $jwtHandler = new JWTHandler();
 $adminToken = $jwtHandler->encode(['id' => 1, 'username' => 'admin_test', 'role' => 'admin']);
 $userToken = $jwtHandler->encode(['id' => 2, 'username' => 'user_test', 'role' => 'user']);
+$otherUserToken = $jwtHandler->encode(['id' => 999, 'username' => 'other_user', 'role' => 'user']);
 
 echo "✅ Đã tự động tạo JWT Token thành công.\n";
 
@@ -76,7 +78,7 @@ if ($newProd['code'] == 201) {
 echo "5. Thêm sản phẩm LỖI (Giá sale > Giá gốc)...\n";
 $errProdData = $newProdData; $errProdData['sale_price'] = 200000;
 $errProd = makeRequest('POST', $baseUrl . '/api/product', $errProdData, $adminToken);
-if ($errProd['code'] == 400 && strpos($errProd['body']['message'], 'nhỏ hơn hoặc bằng') !== false) {
+if ($errProd['code'] == 400 && isset($errProd['body']['errors']['sale_price']) && strpos($errProd['body']['errors']['sale_price'], 'lớn hơn giá gốc') !== false) {
     echo "✅ PASS (Bắt lỗi chuẩn).\n";
 } else {
     echo "❌ FAIL ({$errProd['code']})\n";
@@ -117,6 +119,38 @@ if (isset($orderId)) {
     echo "10. Admin chuyển lùi trạng thái LỖI (Đang giao hàng -> Chờ xác nhận)...\n";
     $updateErrRes = makeRequest('PUT', $baseUrl . '/api/order/' . $orderId, ['status' => 'Chờ xác nhận'], $adminToken);
     if ($updateErrRes['code'] == 400) echo "✅ PASS (Bắt lỗi chuẩn).\n"; else echo "❌ FAIL\n";
+
+    echo "11. Lấy danh sách đơn hàng (GET /api/order) - Role Admin...\n";
+    $listAdminRes = makeRequest('GET', $baseUrl . '/api/order', null, $adminToken);
+    if ($listAdminRes['code'] == 200 && is_array($listAdminRes['body'])) {
+        echo "✅ PASS (Số lượng đơn hàng tìm thấy: " . count($listAdminRes['body']) . ")\n";
+    } else {
+        echo "❌ FAIL ({$listAdminRes['code']})\n";
+    }
+
+    echo "12. Lấy danh sách đơn hàng (GET /api/order) - Role User...\n";
+    $listUserRes = makeRequest('GET', $baseUrl . '/api/order', null, $userToken);
+    if ($listUserRes['code'] == 200 && is_array($listUserRes['body'])) {
+        echo "✅ PASS (Số lượng đơn hàng của User: " . count($listUserRes['body']) . ")\n";
+    } else {
+        echo "❌ FAIL ({$listUserRes['code']})\n";
+    }
+
+    echo "12b. Lấy danh sách đơn hàng (GET /api/order) - Role User khác (không có đơn hàng)...\n";
+    $listOtherUserRes = makeRequest('GET', $baseUrl . '/api/order', null, $otherUserToken);
+    if ($listOtherUserRes['code'] == 200 && is_array($listOtherUserRes['body']) && count($listOtherUserRes['body']) === 0) {
+        echo "✅ PASS (Nhận về 0 đơn hàng như mong đợi).\n";
+    } else {
+        echo "❌ FAIL ({$listOtherUserRes['code']}, Count: " . (is_array($listOtherUserRes['body']) ? count($listOtherUserRes['body']) : 'not array') . ")\n";
+    }
+
+    echo "13. Lấy danh sách đơn hàng không gửi token...\n";
+    $listNoTokenRes = makeRequest('GET', $baseUrl . '/api/order');
+    if ($listNoTokenRes['code'] == 401) {
+        echo "✅ PASS (Bắt lỗi 401 không có token chuẩn).\n";
+    } else {
+        echo "❌ FAIL ({$listNoTokenRes['code']})\n";
+    }
 }
 
 echo "\n----------------------------------------\n";

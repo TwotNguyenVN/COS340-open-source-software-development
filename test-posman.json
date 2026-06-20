@@ -456,6 +456,33 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "17. Get Danh sách tất cả đơn hàng (Phân quyền)",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer <token>",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:88/4851_NguyenNgocTinh_WebsiteBanHang/api/order",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "88",
+					"path": [
+						"4851_NguyenNgocTinh_WebsiteBanHang",
+						"api",
+						"order"
+					]
+				}
+			},
+			"response": []
 		}
 	]
 }
